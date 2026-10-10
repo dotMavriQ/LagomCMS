@@ -11,6 +11,7 @@
  * @var Lagom\Auth\User       $user
  * @var string|null           $current the menu entry being looked at
  * @var bool                  $isStart true on the start page
+ * @var bool                  $isAccount true on the account page
  * @var array<string, mixed>|null $publishing how the website's last build went; null when there is no site to build
  * @var array<string, list<array{definition: array<string, mixed>, documents: list<array<string, mixed>>}>> $menu
  */
@@ -126,7 +127,7 @@ $menuLine = static function (array $entry) use ($current): void {
         <?php endif; ?>
 
         <div class="sidebar__bottom">
-            <span class="sidebar__user" title="<?= e($user->email) ?>"><?= e($user->email) ?></span>
+            <a class="sidebar__user" href="/admin/account"<?= $isAccount ? ' aria-current="page"' : '' ?> title="Your account"><?= e($user->email) ?></a>
             <button class="ghost" type="button" data-theme-toggle title="Light or dark">
                 <?= icon('sun') ?><span class="sr-only">Switch between light and dark</span>
             </button>

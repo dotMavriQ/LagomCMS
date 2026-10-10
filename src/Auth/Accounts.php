@@ -96,6 +96,38 @@ final class Accounts
         ]);
     }
 
+    /**
+     * Replace somebody's password with one they picked, once they have proved they
+     * know the current one. False means the current password was wrong.
+     *
+     * A session cookie alone is not enough to change a password: a laptop left open
+     * would otherwise be all it takes to lock its owner out for good. A wrong guess
+     * here counts as a missed sign-in, so this is no way around the lockout either.
+     *
+     * Every other session of this account ends. If the reason for the change is that
+     * somebody else got in, they are out again; the browser doing the changing stays
+     * signed in.
+     */
+    public function changePassword(Request $request, User $user, string $current, string $new): bool
+    {
+        $query = $this->db->prepare('SELECT password_hash FROM users WHERE id = ?');
+        $query->execute([$user->id]);
+
+        if (!password_verify($current, (string) $query->fetchColumn())) {
+            $this->db->prepare('INSERT INTO failed_logins (ip, email, at) VALUES (?, ?, ?)')
+                ->execute([$request->ip, $user->email, time()]);
+
+            return false;
+        }
+
+        $this->db->prepare('UPDATE users SET password_hash = ? WHERE id = ?')
+            ->execute([password_hash($new, PASSWORD_DEFAULT), $user->id]);
+        $this->db->prepare('DELETE FROM sessions WHERE user_id = ? AND token_hash != ?')
+            ->execute([$user->id, hash('sha256', $request->cookies[self::COOKIE] ?? '')]);
+
+        return true;
+    }
+
     /** Has this email, or this address, missed too often lately? See the limits above. */
     public function isLockedOut(string $ip, string $email): bool
     {

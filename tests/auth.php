@@ -74,6 +74,22 @@ for ($i = 16; $i < 20; $i++) {
 }
 $check('20 lock the address', $accounts->isLockedOut('7.7.7.7', 'bob@example.com'), true);
 
+// ---- Changing a password ----
+
+$cara = new Accounts($database);
+$cara->saveUser('cara@example.com', 'first-password', Role::Editor);
+$here = $cara->signIn('cara@example.com', 'first-password', '6.6.6.6');
+$elsewhere = $cara->signIn('cara@example.com', 'first-password', '5.5.5.5');
+$from = fn (?string $token): Request => new Request('POST', '/admin/account', cookies: [Accounts::COOKIE => (string) $token], ip: '6.6.6.6');
+$user = $cara->currentUser($from($here));
+
+$check('the wrong current password changes nothing', $cara->changePassword($from($here), $user, 'not-it', 'second-password'), false);
+$check('the right one does', $cara->changePassword($from($here), $user, 'first-password', 'second-password'), true);
+$check('the browser that changed it stays signed in', $cara->currentUser($from($here)) !== null, true);
+$check('every other session is ended', $cara->currentUser($from($elsewhere)), null);
+$check('the old password is dead', $cara->signIn('cara@example.com', 'first-password', '6.6.6.6'), null);
+$check('the new one works', $cara->signIn('cara@example.com', 'second-password', '6.6.6.6') !== null, true);
+
 unlink($database);
 
 echo $failed === 0 ? "\nall passed\n" : "\n$failed failed\n";

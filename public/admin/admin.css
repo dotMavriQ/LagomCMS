@@ -237,8 +237,15 @@ code {
 .sidebar__user {
     flex: 1;
     overflow: hidden;
+    color: inherit;
+    text-decoration: none;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.sidebar__user:hover,
+.sidebar__user[aria-current] {
+    color: var(--fg);
 }
 
 .brand {
@@ -507,6 +514,12 @@ code {
 
 .notice--error {
     border-left-color: var(--red);
+}
+
+/* Inside a form the notice lines up with the fields, not with the page. */
+.note .notice {
+    width: auto;
+    margin-inline: 0;
 }
 
 .pill {

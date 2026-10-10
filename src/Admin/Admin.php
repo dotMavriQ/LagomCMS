@@ -22,6 +22,7 @@ use Lagom\Site\Builder;
  *     /admin/setup                 first run only: create the owner's account
  *     /admin/login                 sign in
  *     /admin                       the start page: numbers, drafts, shortcuts
+ *     /admin/account               change your own password
  *     /admin/<collection>          a list of its documents (or the editor, for a singleton)
  *     /admin/<collection>/new      name a new document
  *     /admin/<collection>/<slug>   the editor
@@ -90,6 +91,10 @@ final class Admin
 
         if ($segments === ['publish']) {
             return $this->publish($request);
+        }
+
+        if ($segments === ['account']) {
+            return $this->account($request, $user);
         }
 
         $definition = $this->collections->get($segments[0]);
@@ -204,6 +209,42 @@ final class Admin
             'error' => $error,
             'email' => (string) ($request->form['email'] ?? ''),
         ]));
+    }
+
+    /**
+     * /admin/account: change your own password, behind the email address in the
+     * corner of the sidebar.
+     *
+     * Before this existed the only way was `bin/lagom user` on the server, which is
+     * fine for a forgotten password and a poor answer to "I would like a new one".
+     */
+    private function account(Request $request, User $user): Response
+    {
+        $error = null;
+
+        if ($request->method === 'POST') {
+            $current = (string) ($request->form['current'] ?? '');
+            $new = (string) ($request->form['password'] ?? '');
+
+            if ($this->accounts->isLockedOut($request->ip, $user->email)) {
+                $error = 'Too many wrong passwords. Wait a quarter of an hour and try again.';
+            } elseif (strlen($new) < 10) {
+                $error = 'Pick a password of at least 10 characters.';
+            } elseif ($new !== (string) ($request->form['repeat'] ?? '')) {
+                $error = 'The new password and its repeat are not the same.';
+            } elseif (!$this->accounts->changePassword($request, $user, $current, $new)) {
+                $error = 'That is not your current password.';
+            } else {
+                // Redirect, so reloading the page does not send the passwords again.
+                return Response::redirect('/admin/account?saved=1');
+            }
+        }
+
+        return $this->page($error === null ? 200 : 422, 'account', $user, [
+            'title' => 'Account',
+            'error' => $error,
+            'saved' => $error === null && isset($request->query['saved']),
+        ]);
     }
 
     /**
@@ -424,6 +465,7 @@ final class Admin
         $data['current'] = $definition === null ? null : ($definition['parent'] ?? $definition['name']);
         $data['tabs'] = $definition === null ? [] : $this->collections->family($definition['name']);
         $data['isStart'] = $data['isStart'] ?? false;
+        $data['isAccount'] = $template === 'account';
         $data['menu'] = $this->menu();
         // Null when there is no Astro project to build: then there is nothing to report.
         $data['publishing'] = $this->builder->isConfigured() ? $this->builder->status() : null;
