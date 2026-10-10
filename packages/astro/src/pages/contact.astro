@@ -1,0 +1,139 @@
+---
+import Base from '../layouts/Base.astro';
+import { ICONS, type IconName } from '../data/icons';
+import { getSingleton } from '../lib/lagom';
+import { PERSON, SITE } from '../site';
+
+// Everything this page says comes from the CMS, where it is edited under Contact: the heading
+// block, the row of channel buttons, and the cards beneath them.
+interface Channel {
+	label: string;
+	url: string;
+	icon?: string;
+}
+interface Card {
+	title: string;
+	text?: string;
+	button?: string;
+	url?: string;
+	/** What pressing the button does: 'link' goes to the address, 'booking' opens Cal.com's window. */
+	action?: 'link' | 'booking';
+	/** Draws the button filled, as the one thing on the page you most want pressed. */
+	primary?: boolean;
+}
+interface ContactFields {
+	title: string;
+	tab_title?: string;
+	description?: string;
+	tagline?: string;
+	intro?: string;
+	channels?: Channel[];
+	cards?: Card[];
+}
+
+const contact = (await getSingleton<ContactFields>('contact')).fields;
+
+const channels = (contact.channels ?? []).map((channel) => {
+	// An email address is never written into the page. The button carries it scrambled in data-m
+	// (reversed base64) and scripts/site.ts turns that into a mailto: link in the browser, so
+	// harvesters reading the HTML find nothing to collect.
+	const address = channel.url.replace(/^mailto:/, '');
+	const isEmail = /^[^\s@/]+@[^\s@/]+$/.test(address);
+	return {
+		label: channel.label,
+		href: channel.url,
+		external: /^https?:\/\//.test(channel.url),
+		scrambled: isEmail ? [...btoa(address)].reverse().join('') : undefined,
+		// The fediverse has no logo in the icon set; it uses the ⁂ glyph instead.
+		glyph: channel.icon === 'fediverse',
+		icon: channel.icon && channel.icon in ICONS ? (channel.icon as IconName) : undefined,
+	};
+});
+
+const cards = (contact.cards ?? []).map((card) => {
+	const url = card.url ?? '';
+	// A booking button opens Cal.com's window on this page instead of leaving the site. All the
+	// script needs is data-booking="<the Cal.com link>" on the button (see scripts/cal.ts), and the
+	// link is whatever follows cal.com/ in the address: "ada", or "ada/intro-call".
+	// The button keeps a real href to cal.com, so without JavaScript it still gets you there.
+	// A card with no 'action' and a cal.com address counts as a booking too, as it always did.
+	const calLink = /^https?:\/\/(?:www\.|app\.)?cal\.com\/([A-Za-z0-9._-]+(?:\/[A-Za-z0-9._-]+)?)\/?(?:[?#].*)?$/.exec(url)?.[1];
+	const booking = card.action === 'link' ? undefined : calLink;
+	return { ...card, url, booking, external: /^https?:\/\//.test(url) };
+});
+
+const ld = [
+	{
+		'@context': 'https://schema.org',
+		'@type': 'ContactPage',
+		url: `${SITE.url}/contact`,
+		about: { '@id': PERSON['@id'] },
+	},
+];
+---
+
+<Base
+	accent="red"
+	title={contact.tab_title || `contact // ${SITE.shortName}`}
+	description={contact.description || 'Ways to get in touch.'}
+	image="/img/og/contact.png"
+	jsonLd={ld}
+>
+	<section class="contact container">
+		<div class="intro-card">
+			<h1>{contact.title}</h1>
+			{contact.tagline && <p class="tagline">{contact.tagline}</p>}
+			{contact.intro && <p class="sub">{contact.intro}</p>}
+			<nav aria-label="Contact channels" class="channel-row">
+				{
+					channels.map((channel) => {
+						const mark = channel.glyph ? (
+							<span class="icon icon--glyph" aria-hidden="true">
+								⁂
+							</span>
+						) : (
+							// Drawn here and not with <SocialIcon>, which would add an HTML comment per icon.
+							channel.icon && <svg class="icon" {...ICONS[channel.icon].attrs} aria-hidden="true" focusable="false" set:html={ICONS[channel.icon].inner} />
+						);
+						return channel.scrambled ? (
+							<a class="channel" data-m={channel.scrambled} href="#">
+								{mark}
+								<span>{channel.label}</span>
+							</a>
+						) : (
+							<a class="channel" href={channel.href} rel={channel.external ? 'noopener' : undefined} target={channel.external ? '_blank' : undefined}>
+								{mark}
+								<span>{channel.label}</span>
+							</a>
+						);
+					})
+				}
+			</nav>
+		</div>
+		<div class="action-row">
+			{
+				cards.map((card) => (
+					<div class="action-card">
+						<h2>{card.title}</h2>
+						{card.text && <p>{card.text}</p>}
+						{card.button && card.url && (
+							<a
+								class:list={['action-btn', { 'action-btn--primary': card.primary }]}
+								href={card.url}
+								rel={card.external ? 'noopener' : undefined}
+								target={card.external ? '_blank' : undefined}
+								data-booking={card.booking}
+								aria-haspopup={card.booking ? 'dialog' : undefined}
+							>
+								{card.button}
+							</a>
+						)}
+					</div>
+				))
+			}
+		</div>
+	</section>
+	<script>
+		import '../scripts/cal.ts';
+	</script>
+</Base>

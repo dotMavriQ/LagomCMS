@@ -1,0 +1,52 @@
+---
+import { NAV, SITE, pagePath } from '../site';
+import ThemeToggle from './ThemeToggle.astro';
+
+const path = pagePath(Astro.url);
+/** "page" on the exact page, "true" while inside that section (e.g. a blog post). */
+const state = (href: string) => (path === href ? 'page' : path.startsWith(href + '/') ? 'true' : undefined);
+---
+
+<header class="site-header">
+	<div class="container header-bar">
+		<a class="site-title" href="/">
+			<span class="logo" aria-hidden="true"></span>
+			<span class="slash" aria-hidden="true">//</span> {SITE.name}
+		</a>
+		<nav class="site-nav" aria-label="Site navigation">
+			<ul class="nav-links" role="list">
+				{
+					NAV.map((link) => (
+						<li>
+							<a href={link.href} aria-current={state(link.href)}>
+								{link.label}
+							</a>
+						</li>
+					))
+				}
+			</ul>
+			<ThemeToggle />
+			<!-- Native popover: opens/closes, Esc + click-away dismiss and focus return with no JS. -->
+			<button class="nav-toggle" type="button" popovertarget="mobile-menu" aria-label="Menu">
+				<span aria-hidden="true">☰</span>
+			</button>
+		</nav>
+	</div>
+</header>
+
+<nav id="mobile-menu" class="mobile-menu" popover aria-label="Mobile navigation">
+	<button class="mobile-menu__close" type="button" popovertarget="mobile-menu" popovertargetaction="hide" aria-label="Close menu">
+		<span aria-hidden="true">✕</span>
+	</button>
+	<ul role="list">
+		{
+			NAV.map((link) => (
+				<li>
+					<a href={link.href} aria-current={state(link.href)}>
+						{link.label}
+					</a>
+				</li>
+			))
+		}
+	</ul>
+</nav>

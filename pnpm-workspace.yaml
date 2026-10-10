@@ -1,0 +1,7 @@
+packages:
+  - packages/*
+  - site
+  - examples/*
+allowBuilds:
+  esbuild: true
+  sharp: true

@@ -1,0 +1,893 @@
+/* /social: the fediverse feed over the cholla backdrop.
+
+   Everything readable sits on an opaque surface (cards, sheets), so the photograph is texture and
+   never a contrast problem. The image viewer is dark in both themes: photographs read best on a
+   neutral black, and it keeps the viewer's own contrast fixed. */
+@layer components {
+	.social {
+		display: grid;
+		gap: clamp(1.25rem, 1rem + 1.5vw, 2rem);
+		align-items: start;
+	}
+	@media (min-width: 60rem) {
+		.social {
+			grid-template-columns: 18.5rem minmax(0, 42rem);
+			justify-content: center;
+		}
+		.social-side {
+			position: sticky;
+			inset-block-start: 1.5rem;
+		}
+	}
+
+	/* ---------- profile panel ---------- */
+	.social-card {
+		display: grid;
+		gap: 1rem;
+		padding: clamp(1.1rem, 0.9rem + 1vw, 1.5rem);
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-block-start: 3px solid var(--accent);
+		border-radius: 0.75rem;
+	}
+	.social-eyebrow {
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: var(--muted);
+	}
+	.social-id {
+		display: flex;
+		align-items: center;
+		gap: 0.9rem;
+
+		h1 {
+			font-size: clamp(2rem, 1.6rem + 1.5vw, 2.5rem);
+			line-height: 1;
+			letter-spacing: -0.02em;
+		}
+	}
+	.social-id__avatar {
+		flex: none;
+		inline-size: 4.5rem;
+		block-size: 4.5rem;
+		border-radius: 50%;
+		object-fit: cover;
+		outline: 2px solid var(--accent);
+		outline-offset: 3px;
+	}
+	.social-id__handle {
+		margin-block-start: -0.4rem;
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+		color: var(--muted);
+		overflow-wrap: anywhere;
+	}
+	.social-lede {
+		font-size: 0.975em;
+	}
+	.social-stat {
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+		color: var(--muted);
+
+		span {
+			font-size: 1.5rem;
+			font-weight: 600;
+			color: var(--fg);
+			font-variant-numeric: tabular-nums;
+		}
+	}
+	.social-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+	.social-links {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.25rem 1rem;
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+
+		a {
+			color: var(--muted);
+
+			&:hover {
+				color: var(--fg);
+			}
+		}
+	}
+	/* On a phone the panel is a header. The two text links go (both are one tap away in the profile and
+	   follow dialogs); everything else stays. */
+	@media (max-width: 40rem) {
+		.social-card {
+			gap: 0.8rem;
+		}
+		.social-links {
+			display: none;
+		}
+		.social-id__avatar {
+			inline-size: 3.5rem;
+			block-size: 3.5rem;
+		}
+	}
+
+	/* ---------- feed ---------- */
+	.social-feed {
+		display: grid;
+		gap: 1rem;
+		min-inline-size: 0;
+	}
+	.social-pager {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		gap: 0.5rem;
+		padding: 0.6rem 1rem;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+
+		span {
+			color: var(--muted);
+		}
+	}
+	.sp-list {
+		display: grid;
+		gap: 1rem;
+	}
+
+	.sp {
+		display: grid;
+		gap: 0.85rem;
+		min-inline-size: 0;
+		padding: clamp(0.9rem, 0.7rem + 1vw, 1.35rem);
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+	}
+	.sp__head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+	}
+	.sp__author {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		min-inline-size: 0;
+		min-block-size: 2.75rem;
+		padding: 0.15rem 0.5rem 0.15rem 0.15rem;
+		margin: -0.15rem;
+		border: 0;
+		border-radius: 99rem;
+		background: none;
+		text-align: start;
+		cursor: pointer;
+
+		&:hover {
+			background: color-mix(in oklab, var(--surface), var(--fg) 7%);
+		}
+	}
+	.sp__avatar {
+		flex: none;
+		inline-size: 2.75rem;
+		block-size: 2.75rem;
+		border-radius: 50%;
+		object-fit: cover;
+		background: var(--border);
+	}
+	.sp__who {
+		display: grid;
+		min-inline-size: 0;
+		line-height: 1.3;
+	}
+	.sp__name {
+		font-weight: 600;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.sp__handle {
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		color: var(--muted);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.sp__date {
+		flex: none;
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+		color: var(--muted);
+		font-variant-numeric: tabular-nums;
+		text-decoration: none;
+		/* a comfortable target without growing the header */
+		padding-block: 0.6rem;
+
+		&:is(a):hover {
+			color: var(--fg);
+			text-decoration: underline;
+		}
+	}
+
+	.sp__body {
+		overflow-wrap: anywhere;
+
+		p + p {
+			margin-block-start: 0.8em;
+		}
+		/* Mastodon/Pleroma markup: trimmed URL parts */
+		.invisible {
+			display: none;
+		}
+		.ellipsis::after {
+			content: '…';
+		}
+		a.hashtag,
+		a[rel~='tag'] {
+			font-family: var(--font-mono);
+			font-size: 0.85em;
+			text-decoration: none;
+			white-space: nowrap;
+
+			&:hover {
+				text-decoration: underline;
+			}
+		}
+	}
+
+	/* ---------- media ----------
+	   The instance does not send dimensions, so every layout reserves its box up front (no layout shift).
+	   One image is shown whole on a dark plate; several are cropped into a grid and shown whole in the viewer. */
+	.sp-media {
+		--plate: #1d2021;
+
+		position: relative;
+		display: grid;
+		gap: 0.3rem;
+		aspect-ratio: 4 / 3;
+		border-radius: 0.6rem;
+		overflow: clip;
+		background: var(--plate);
+
+		&[data-count='2'] {
+			grid-template-columns: 1fr 1fr;
+			aspect-ratio: 2 / 1;
+		}
+		&[data-count='3'] {
+			grid-template: 'a b' 1fr 'a c' 1fr / 3fr 2fr;
+
+			.sp-media__item:first-child {
+				grid-area: a;
+			}
+		}
+		&[data-count='4'] {
+			grid-template-columns: 1fr 1fr;
+			grid-template-rows: 1fr 1fr;
+		}
+	}
+	.sp-media__item {
+		position: relative;
+		min-inline-size: 0;
+		min-block-size: 0;
+
+		img,
+		video {
+			display: block;
+			inline-size: 100%;
+			block-size: 100%;
+			object-fit: cover;
+		}
+	}
+	.sp-media[data-count='1'] .sp-media__item :is(img, video) {
+		object-fit: contain;
+	}
+	.sp-media__open {
+		display: block;
+		inline-size: 100%;
+		block-size: 100%;
+		padding: 0;
+		border: 0;
+		background: none;
+		cursor: zoom-in;
+
+		img {
+			transition: scale 300ms ease;
+		}
+		&:focus-visible {
+			outline-offset: -4px;
+		}
+	}
+	@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+		.sp-media:not([data-count='1']) .sp-media__open:hover img {
+			scale: 1.03;
+		}
+	}
+
+	/* content warning: the media stays in place, blurred, behind one clear control */
+	.sp-media[data-cw]:not([data-revealed]) :is(img, video) {
+		filter: blur(28px) saturate(0.6);
+		scale: 1.15;
+	}
+	.sp-cw {
+		position: absolute;
+		inset: 0;
+		display: grid;
+		place-content: center;
+		gap: 0.35rem;
+		padding: 1rem;
+		border: 0;
+		/* 72% of the plate keeps #ebdbb2 above 4.5:1 even over a white blur */
+		background: color-mix(in oklab, var(--plate) 72%, transparent);
+		color: #ebdbb2;
+		font-family: var(--font-mono);
+		text-align: center;
+		cursor: pointer;
+
+		&:hover .sp-cw__hint {
+			text-decoration: underline;
+		}
+		&:focus-visible {
+			outline-offset: -4px;
+		}
+	}
+	.sp-cw__title {
+		font-size: 0.95rem;
+		font-weight: 600;
+	}
+	.sp-cw__hint {
+		font-size: 0.8125rem;
+	}
+
+	/* ---------- load more ---------- */
+	.social-more {
+		display: grid;
+		justify-items: center;
+		gap: 0.6rem;
+		padding: 1rem;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+
+		.is-loading {
+			cursor: progress;
+			opacity: 0.7;
+		}
+	}
+	.social-end {
+		font-family: var(--font-mono);
+		font-size: 0.875rem;
+	}
+	.social-empty {
+		display: grid;
+		justify-items: start;
+		gap: 0.75rem;
+		padding: 1.5rem;
+		background: var(--surface);
+		border: 1px solid var(--border);
+		border-radius: 0.75rem;
+	}
+	.social-error {
+		min-block-size: 1lh;
+		color: var(--red);
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+	}
+
+	/* ---------- sheets (profile, tags, follow, why) ---------- */
+	html:has(dialog[open]) {
+		overflow: hidden;
+	}
+	.sheet {
+		position: fixed;
+		inline-size: min(28rem, 100% - 2rem);
+		max-block-size: min(94dvh, 52rem);
+		padding: 1.5rem;
+		border: 1px solid var(--border-strong);
+		border-radius: 0.9rem;
+		background: var(--bg);
+		color: var(--fg);
+		overflow: auto;
+		/* stylelint-disable-next-line plugin/use-baseline -- polish only: unsupported just lets the page scroll behind */
+		overscroll-behavior: contain;
+
+		&::backdrop {
+			background: color-mix(in oklab, #1d2021 55%, transparent);
+			backdrop-filter: blur(4px);
+		}
+		&[open] {
+			display: grid;
+			gap: 1rem;
+			align-content: start;
+		}
+		h2 {
+			font-size: 1.3rem;
+			line-height: 1.2;
+		}
+	}
+	@media (prefers-reduced-motion: no-preference) {
+		.sheet[open] {
+			animation: sheet-rise 220ms cubic-bezier(0.2, 0.7, 0.2, 1);
+		}
+		.sheet--side[open] {
+			animation-name: sheet-slide;
+		}
+		@keyframes sheet-rise {
+			from {
+				opacity: 0;
+				translate: 0 0.75rem;
+			}
+		}
+		@keyframes sheet-slide {
+			from {
+				translate: -100% 0;
+			}
+		}
+	}
+	.sheet__head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+	.sheet__close {
+		flex: none;
+		display: grid;
+		place-items: center;
+		inline-size: 2.75rem;
+		block-size: 2.75rem;
+		border: 1px solid var(--border-strong);
+		border-radius: 50%;
+		background: var(--bg);
+		font-size: 1.4rem;
+		line-height: 1;
+		cursor: pointer;
+
+		&:hover {
+			background: var(--fg);
+			color: var(--bg);
+		}
+	}
+	.sheet--small > .sheet__close,
+	.sheet--profile > .sheet__close {
+		position: absolute;
+		inset-block-start: 0.75rem;
+		inset-inline-end: 0.75rem;
+		z-index: 1;
+	}
+	.sheet--small h2 {
+		padding-inline-end: 3rem;
+	}
+
+	/* profile card */
+	.sheet--profile {
+		padding: 0 0 1.25rem;
+
+		> :not(.profile__banner, .sheet__close) {
+			padding-inline: 1.5rem;
+		}
+	}
+	.profile__banner {
+		block-size: 7.5rem;
+		background: linear-gradient(135deg, color-mix(in oklab, var(--accent) 55%, var(--bg)), color-mix(in oklab, var(--blue) 40%, var(--bg)));
+		background-size: cover;
+		background-position: center;
+	}
+	.profile__head {
+		display: flex;
+		align-items: end;
+		gap: 1rem;
+		margin-block-start: -2.75rem;
+
+		> div {
+			min-inline-size: 0;
+			padding-block-end: 0.2rem;
+		}
+	}
+	.profile__avatar {
+		flex: none;
+		inline-size: 5.5rem;
+		block-size: 5.5rem;
+		border-radius: 50%;
+		border: 4px solid var(--bg);
+		object-fit: cover;
+		background: var(--surface);
+	}
+	.profile__handle {
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+		color: var(--muted);
+		overflow-wrap: anywhere;
+	}
+	.sheet--profile.is-loading :is(.profile__bio, .profile__stats) {
+		opacity: 0.5;
+	}
+	.profile__bio {
+		font-size: 0.95em;
+		overflow-wrap: anywhere;
+
+		p + p {
+			margin-block-start: 0.6em;
+		}
+		.invisible {
+			display: none;
+		}
+	}
+	.profile__fields {
+		display: grid;
+		gap: 0;
+		margin-inline: 1.5rem;
+		padding: 0 !important;
+		border: 1px solid var(--border);
+		border-radius: 0.6rem;
+		font-size: 0.875rem;
+
+		> div {
+			display: grid;
+			grid-template-columns: minmax(6rem, 35%) 1fr;
+			gap: 0.75rem;
+			padding: 0.5rem 0.8rem;
+		}
+		> div + div {
+			border-block-start: 1px solid var(--border);
+		}
+		dt {
+			font-family: var(--font-mono);
+			font-size: 0.8125rem;
+			color: var(--muted);
+		}
+		dd {
+			margin: 0;
+			overflow-wrap: anywhere;
+		}
+	}
+	.profile__stats {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		margin: 0;
+		text-align: center;
+
+		> div {
+			display: flex;
+			flex-direction: column-reverse;
+		}
+		dt {
+			font-family: var(--font-mono);
+			font-size: 0.75rem;
+			color: var(--muted);
+		}
+		dd {
+			margin: 0;
+			font-size: 1.35rem;
+			font-weight: 600;
+			font-variant-numeric: tabular-nums;
+		}
+	}
+	.profile__foot {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: space-between;
+		gap: 0.5rem 1rem;
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+		color: var(--muted);
+
+		a {
+			color: var(--fg);
+		}
+	}
+	.profile__status:empty {
+		display: none;
+	}
+
+	/* hashtag panel: a full-height sheet from the start edge; a full screen on a phone */
+	.sheet--side {
+		inset-block: 0;
+		inset-inline-start: 0;
+		margin: 0;
+		inline-size: min(34rem, 100vw);
+		max-inline-size: 100vw;
+		block-size: 100dvh;
+		max-block-size: 100dvh;
+		border-block: 0;
+		border-inline-start: 0;
+		border-radius: 0 0.9rem 0.9rem 0;
+		background: var(--bg);
+	}
+	.sheet--side .sheet__head {
+		position: sticky;
+		inset-block-start: -1.5rem;
+		z-index: 1;
+		margin: -1.5rem -1.5rem 0;
+		padding: 1rem 1.5rem;
+		background: var(--bg);
+		border-block-end: 1px solid var(--border);
+	}
+	.sp-list--compact .sp {
+		background: var(--surface);
+	}
+
+	/* follow */
+	.follow-form {
+		display: grid;
+		gap: 0.4rem;
+
+		label {
+			font-family: var(--font-mono);
+			font-size: 0.8125rem;
+		}
+		input {
+			flex: 1;
+			min-inline-size: 0;
+			min-block-size: 2.75rem;
+			padding: 0.5rem 0.8rem;
+			border: 1px solid var(--border-strong);
+			border-radius: 0.5rem;
+			background: var(--surface);
+
+			&[aria-invalid='true'] {
+				border-color: var(--red);
+			}
+		}
+	}
+	.follow-form__row {
+		display: flex;
+		gap: 0.5rem;
+	}
+	.follow-lurk {
+		font-size: 0.9rem;
+		color: var(--muted);
+	}
+
+	/* why the fediverse */
+	.sheet--why {
+		inline-size: min(44rem, 100% - 2rem);
+		/* taller than other sheets: the text should fit without scrolling on laptop screens */
+		max-block-size: min(96dvh, 60rem);
+
+	}
+	/* language buttons on the left, close pinned top-right; the buttons wrap under themselves on narrow screens */
+	.why-bar {
+		display: flex;
+		align-items: start;
+		justify-content: space-between;
+		gap: 0.75rem;
+	}
+	.why-lang {
+		display: flex;
+		flex: 1;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		min-inline-size: 0;
+	}
+	.why-body {
+		font-size: 0.95em;
+
+		article {
+			display: grid;
+			gap: 0.65rem;
+		}
+		ul {
+			padding-inline-start: 1.25rem;
+		}
+		li + li {
+			margin-block-start: 0.3em;
+		}
+		h3 {
+			font-size: 1.1rem;
+			margin-block-start: 0.25rem;
+		}
+	}
+	/* short laptop screens (1366x768, 1280x800): a little tighter so the whole text fits without scrolling */
+	@media (min-width: 48rem) and (max-height: 50rem) {
+		.why-body {
+			font-size: 0.9em;
+			line-height: 1.5;
+
+			article {
+				gap: 0.5rem;
+			}
+		}
+	}
+	/* The "why" paragraph (a run of linked sources) shrinks only as far as each screen height needs so the popup
+	   fits without scrolling on laptops and tablets, per language (the translations run longer). Phones keep
+	   normal sizes and scroll instead. Factors measured, not guessed. */
+	@media (min-width: 48rem) {
+		.why-record {
+			line-height: 1.5;
+			font-size: min(1em, 1.76dvh);
+		}
+		[data-lang='sv'] .why-record {
+			font-size: min(1em, 1.5dvh);
+		}
+		[data-lang='pt'] .why-record {
+			font-size: min(1em, 1.21dvh);
+		}
+	}
+	.why-actions {
+		display: flex;
+		justify-content: end;
+		position: sticky;
+		inset-block-end: -1.5rem;
+		margin: 0 -1.5rem -1.5rem;
+		padding: 0.75rem 1.5rem;
+		background: var(--bg);
+		border-block-start: 1px solid var(--border);
+	}
+
+	/* ---------- image viewer ---------- */
+	.lightbox {
+		--lb-bg: #141617;
+		--lb-fg: #ebdbb2;
+		--lb-muted: #bdae93;
+
+		inline-size: 100vw;
+		max-inline-size: 100vw;
+		block-size: 100dvh;
+		max-block-size: 100dvh;
+		margin: 0;
+		padding: 0;
+		border: 0;
+		background: var(--lb-bg);
+		color: var(--lb-fg);
+		color-scheme: dark;
+
+		&::backdrop {
+			background: var(--lb-bg);
+		}
+		&[open] {
+			display: grid;
+			grid-template-rows: auto minmax(0, 1fr) auto;
+		}
+		button {
+			color: inherit;
+		}
+	}
+	.lightbox__bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 0.75rem 1rem;
+	}
+	.lightbox__count {
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+		color: var(--lb-muted);
+		font-variant-numeric: tabular-nums;
+	}
+	:is(.lightbox__close, .lightbox__nav) {
+		display: grid;
+		place-items: center;
+		min-inline-size: 2.75rem;
+		block-size: 2.75rem;
+		border: 1px solid color-mix(in oklab, var(--lb-fg) 45%, transparent);
+		border-radius: 99rem;
+		background: color-mix(in oklab, var(--lb-bg) 70%, transparent);
+		font-size: 1.25rem;
+		line-height: 1;
+		cursor: pointer;
+
+		&:hover:not(:disabled) {
+			background: var(--lb-fg);
+			color: var(--lb-bg);
+		}
+		&:disabled {
+			opacity: 0.3;
+			cursor: default;
+		}
+		&:focus-visible {
+			outline: 2px solid var(--lb-fg);
+			outline-offset: 2px;
+		}
+	}
+	.lightbox__stage {
+		position: relative;
+		display: grid;
+		grid-template-rows: minmax(0, 1fr) auto;
+		place-items: center;
+		gap: 0.75rem;
+		margin: 0;
+		padding-inline: clamp(0.5rem, 5vw, 5rem);
+		min-block-size: 0;
+
+		img {
+			max-inline-size: 100%;
+			max-block-size: 100%;
+			object-fit: contain;
+			opacity: 0;
+			transition: opacity 200ms;
+
+			&.is-ready {
+				opacity: 1;
+			}
+		}
+	}
+	.lightbox.is-veiled .lightbox__stage img {
+		filter: blur(32px);
+	}
+	.lightbox__cw {
+		position: absolute;
+		inset: 0;
+		display: grid;
+		place-items: center;
+
+		button {
+			display: grid;
+			gap: 0.35rem;
+			padding: 1rem 1.5rem;
+			border: 1px solid var(--lb-fg);
+			border-radius: 0.75rem;
+			background: color-mix(in oklab, var(--lb-bg) 80%, transparent);
+			font-family: var(--font-mono);
+			font-size: 0.875rem;
+			cursor: pointer;
+		}
+	}
+	.lightbox__alt {
+		max-inline-size: 65ch;
+		max-block-size: 6.5rem;
+		overflow: auto;
+		padding-inline: 0.5rem;
+		font-size: 0.9rem;
+		line-height: 1.5;
+		text-align: center;
+		color: var(--lb-fg);
+	}
+	.lightbox__nav {
+		position: absolute;
+		inset-block-start: 50%;
+		translate: 0 -50%;
+		gap: 0.1rem;
+		padding-inline: 0.8rem;
+	}
+	.lightbox__nav--prev {
+		inset-inline-start: clamp(0.5rem, 2vw, 1.5rem);
+	}
+	.lightbox__nav--next {
+		inset-inline-end: clamp(0.5rem, 2vw, 1.5rem);
+		grid-auto-flow: column;
+	}
+	.lightbox__more:not(:empty) {
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+	}
+	.lightbox__hint {
+		padding: 0.6rem 1rem 0.9rem;
+		font-family: var(--font-mono);
+		font-size: 0.75rem;
+		color: var(--lb-muted);
+		text-align: center;
+	}
+	/* on touch screens the arrows sit under the picture and swiping does the rest */
+	@media (hover: none), (max-width: 40rem) {
+		.lightbox__hint {
+			display: none;
+		}
+		.lightbox__nav {
+			inset-block: auto 1rem;
+			translate: none;
+		}
+		.lightbox[open] {
+			padding-block-end: 4.5rem;
+		}
+	}
+}
+
+@layer print {
+	@media print {
+		.social-side .social-actions,
+		.social-more,
+		.lightbox,
+		.sheet {
+			display: none;
+		}
+	}
+}

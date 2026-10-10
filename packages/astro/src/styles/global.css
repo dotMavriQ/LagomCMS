@@ -1,0 +1,734 @@
+/* Cascade layers: later layers win, regardless of selector specificity. */
+@layer reset, tokens, base, layout, components, prose, code, utilities, print;
+
+/* ---------- tokens ----------
+   Gruvbox Material (medium). light-dark() picks per colour-scheme, so there is
+   no duplicated dark block and the no-JS fallback follows the OS for free.
+   Text colours are the AA-adjusted values from src/themes/gruvbox-material.ts. */
+@layer tokens {
+	:root {
+		color-scheme: light dark;
+
+		--bg: light-dark(#fbf1c7, #282828);
+		--fg: light-dark(#654735, #d4be98);
+		--red: light-dark(#bb4545, #ea6962);
+		--green: light-dark(#677329, #a9b665);
+		--yellow: light-dark(#9f5d00, #d8a657);
+		--blue: light-dark(#45707a, #7daea3);
+		--purple: light-dark(#925c7e, #d3869b);
+		--aqua: light-dark(#49765a, #89b482);
+		/* decoration only (rules, markers): does NOT meet text contrast */
+		--grey: light-dark(#a89984, #7c6f64);
+		/* the readable grey */
+		--comment: light-dark(#796b57, #9a8d81);
+
+		/* derived. Every text-on-surface pairing is verified by `pnpm check:contrast`. */
+		--muted: color-mix(in oklab, var(--fg), var(--bg) 14%);
+		/* cards: barely lighter than the cream page (a soft lift, not white); recessed panels on the dark page */
+		--surface: light-dark(color-mix(in oklab, var(--bg), white 18%), color-mix(in oklab, var(--bg), black 18%));
+		/* hairlines and card edges (decorative) */
+		--border: color-mix(in oklab, var(--bg), var(--fg) 18%);
+		/* boundaries of controls (inputs, buttons): must be >= 3:1 (WCAG 1.4.11) */
+		--border-strong: color-mix(in oklab, var(--bg), var(--fg) 66%);
+
+		/* per-page accent, set with body[data-accent] */
+		--accent: var(--yellow);
+
+		--font-serif: 'Source Serif 4 Variable', Georgia, 'Times New Roman', serif;
+		--font-mono: 'JetBrains Mono Variable', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+		--measure: 42rem;
+		--wide: 64rem;
+		--gutter: 1rem;
+	}
+
+	/* Set by the inline head script; overrides the OS preference. */
+	:root[data-theme='light'] {
+		color-scheme: light;
+	}
+	:root[data-theme='dark'] {
+		color-scheme: dark;
+	}
+
+	@media (prefers-contrast: more) {
+		:root {
+			--muted: var(--fg);
+			--border: color-mix(in oklab, var(--bg), var(--fg) 45%);
+		}
+	}
+
+	body[data-accent='red'] {
+		--accent: var(--red);
+	}
+	body[data-accent='green'] {
+		--accent: var(--green);
+	}
+	body[data-accent='yellow'] {
+		--accent: var(--yellow);
+	}
+	body[data-accent='blue'] {
+		--accent: var(--blue);
+	}
+	body[data-accent='purple'] {
+		--accent: var(--purple);
+	}
+	body[data-accent='aqua'] {
+		--accent: var(--aqua);
+	}
+}
+
+/* ---------- reset / base ---------- */
+@layer reset {
+	*,
+	*::before,
+	*::after {
+		box-sizing: border-box;
+	}
+	body,
+	h1,
+	h2,
+	h3,
+	h4,
+	p,
+	ul,
+	ol,
+	figure,
+	blockquote {
+		margin: 0;
+	}
+	img,
+	svg {
+		display: block;
+		max-inline-size: 100%;
+		block-size: auto;
+	}
+	button,
+	input,
+	textarea {
+		font: inherit;
+		color: inherit;
+	}
+	[hidden] {
+		display: none !important;
+	}
+}
+
+@layer base {
+	html {
+		/* stylelint-disable-next-line property-no-vendor-prefix -- Safari only implements the prefixed form */
+		-webkit-text-size-adjust: 100%;
+		scroll-padding-block-start: 1.5rem;
+	}
+
+	body {
+		background: var(--bg);
+		color: var(--fg);
+		font-family: var(--font-serif);
+		font-size: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+		line-height: 1.7;
+		font-optical-sizing: auto;
+		text-rendering: optimizeLegibility;
+		display: grid;
+		grid-template-rows: auto 1fr auto;
+		min-block-size: 100dvh;
+	}
+
+	h1,
+	h2,
+	h3 {
+		text-wrap: balance;
+	}
+
+	/* stylelint-disable-next-line plugin/use-baseline -- polish only: unsupported falls back to the default highlight */
+	::selection {
+		background: var(--fg);
+		color: var(--bg);
+	}
+
+	:focus-visible {
+		outline: 2px solid var(--blue);
+		outline-offset: 3px;
+		border-radius: 2px;
+	}
+
+	a {
+		color: var(--blue);
+		text-decoration-line: underline;
+		text-decoration-thickness: 1px;
+		text-underline-offset: 0.2em;
+		transition:
+			color 120ms,
+			text-decoration-thickness 120ms;
+
+		&:hover {
+			color: var(--red);
+			text-decoration-thickness: 2px;
+		}
+	}
+
+	.skip-link {
+		position: absolute;
+		inset-inline-start: 0.5rem;
+		inset-block-start: -4rem;
+		z-index: 100;
+		padding: 0.5rem 0.9rem;
+		background: var(--fg);
+		color: var(--bg);
+		font-family: var(--font-mono);
+		font-size: 0.875rem;
+		border-radius: 0.3rem;
+		text-decoration: none;
+
+		&:focus {
+			inset-block-start: 0.5rem;
+		}
+	}
+}
+
+/* ---------- layout: header, main, footer ---------- */
+@layer layout {
+	.container {
+		inline-size: min(100% - 2 * var(--gutter), var(--wide));
+		margin-inline: auto;
+	}
+
+	.page-shell {
+		display: flex;
+		flex-direction: column;
+	}
+	.page {
+		flex: 1;
+		padding-block: 2.5rem 3rem;
+	}
+
+	.site-header {
+		border-block-end: 1px solid var(--border);
+		font-family: var(--font-mono);
+		font-size: 0.875rem;
+	}
+	.header-bar {
+		padding-block: 0.75rem;
+		inline-size: min(100% - 2 * var(--gutter), var(--wide));
+		margin-inline: auto;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+	}
+
+	.site-title {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: var(--fg);
+		font-weight: 700;
+		text-decoration: none;
+
+		&:hover {
+			color: var(--red);
+		}
+	}
+	.slash {
+		color: var(--comment);
+		font-weight: 400;
+	}
+	/* The bird is an alpha mask painted with the theme's text colour: Gruvbox brown on the
+	   light page, Gruvbox cream on the dark page. One file, no theme swapping. */
+	.logo {
+		flex: none;
+		display: inline-block;
+		inline-size: 1.85rem;
+		aspect-ratio: 751 / 657;
+		background-color: var(--fg);
+		mask: url('/logo-mask.webp') center / contain no-repeat;
+	}
+
+	.site-nav {
+		display: flex;
+		align-items: center;
+		gap: 1.25rem;
+	}
+	.nav-links {
+		display: flex;
+		gap: 1.25rem;
+		list-style: none;
+		padding: 0;
+
+		a {
+			color: var(--muted);
+			text-decoration: none;
+			padding-block: 0.4rem;
+			display: inline-block;
+
+			&:hover,
+			&[aria-current] {
+				color: var(--fg);
+			}
+			&[aria-current='page'] {
+				text-decoration: underline;
+				text-decoration-color: var(--accent);
+				text-decoration-thickness: 2px;
+				text-underline-offset: 0.5em;
+			}
+		}
+	}
+
+	.nav-toggle {
+		display: none;
+		place-items: center;
+		inline-size: 2.5rem;
+		block-size: 2.5rem;
+		padding: 0;
+		border: 1px solid var(--border);
+		border-radius: 0.5rem;
+		background: transparent;
+		cursor: pointer;
+	}
+	@media (max-width: 40rem) {
+		.nav-links {
+			display: none;
+		}
+		.nav-toggle {
+			display: grid;
+		}
+	}
+
+	/* Native popover: full-screen menu, fades in with @starting-style. */
+	.mobile-menu {
+		inset: 0;
+		inline-size: 100%;
+		block-size: 100%;
+		max-inline-size: none;
+		max-block-size: none;
+		margin: 0;
+		border: 0;
+		padding: 4.5rem 1.5rem 2rem;
+		background: var(--bg);
+		color: var(--fg);
+		font-family: var(--font-mono);
+		opacity: 0;
+		transition:
+			opacity 150ms ease,
+			display 150ms allow-discrete;
+
+		&:popover-open {
+			opacity: 1;
+		}
+		@starting-style {
+			&:popover-open {
+				opacity: 0;
+			}
+		}
+
+		ul {
+			list-style: none;
+			padding: 0;
+			display: grid;
+			gap: 0.25rem;
+		}
+		a {
+			display: block;
+			padding: 0.75rem 0;
+			font-size: 1.5rem;
+			color: var(--fg);
+			text-decoration: none;
+			border-block-end: 1px solid var(--border);
+
+			&[aria-current] {
+				color: var(--red);
+			}
+		}
+	}
+	.mobile-menu__close {
+		position: absolute;
+		inset-block-start: 1rem;
+		inset-inline-end: 1rem;
+		inline-size: 2.75rem;
+		block-size: 2.75rem;
+		border: 1px solid var(--border);
+		border-radius: 0.5rem;
+		background: transparent;
+		cursor: pointer;
+	}
+
+	.site-footer {
+		margin-block-start: 4rem;
+		border-block-start: 1px solid var(--border);
+		color: var(--muted);
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+
+		a {
+			color: var(--fg);
+		}
+	}
+	.footer-bar {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.25rem 1.5rem;
+		padding-block: 1.1rem;
+
+		p {
+			margin: 0;
+		}
+	}
+}
+
+/* ---------- components ---------- */
+@layer components {
+	.theme-toggle {
+		display: grid;
+		place-items: center;
+		inline-size: 2.5rem;
+		block-size: 2.5rem;
+		padding: 0;
+		border: 1px solid var(--border-strong);
+		border-radius: 0.5rem;
+		background: transparent;
+		color: var(--fg);
+		cursor: pointer;
+		transition:
+			background 120ms,
+			border-color 120ms;
+
+		&:hover {
+			background: var(--surface);
+			border-color: var(--comment);
+		}
+		svg {
+			inline-size: 1.125rem;
+			block-size: 1.125rem;
+			grid-area: 1 / 1;
+			fill: none;
+			stroke: currentColor;
+			stroke-width: 1.75;
+			stroke-linecap: round;
+			stroke-linejoin: round;
+		}
+		/* Show the icon for the theme you would switch TO. */
+		.icon-sun {
+			display: none;
+		}
+	}
+	:root[data-theme='dark'] .theme-toggle {
+		.icon-sun {
+			display: block;
+		}
+		.icon-moon {
+			display: none;
+		}
+	}
+	@media (prefers-color-scheme: dark) {
+		:root:not([data-theme]) .theme-toggle {
+			.icon-sun {
+				display: block;
+			}
+			.icon-moon {
+				display: none;
+			}
+		}
+	}
+}
+
+/* ---------- prose (posts) ---------- */
+@layer prose {
+	.prose {
+		> * + * {
+			margin-block-start: 1.25em;
+		}
+		h2,
+		h3,
+		h4 {
+			line-height: 1.25;
+			letter-spacing: -0.01em;
+			margin-block: 2.25em 0.5em;
+		}
+		h2 {
+			font-size: 1.6rem;
+		}
+		h3 {
+			font-size: 1.25rem;
+		}
+		h4 {
+			font-size: 1.05rem;
+		}
+		ul,
+		ol {
+			padding-inline-start: 1.4em;
+		}
+		li + li {
+			margin-block-start: 0.3em;
+		}
+		/* stylelint-disable-next-line plugin/use-baseline -- polish only: unsupported falls back to the default bullet colour */
+		li::marker {
+			color: var(--comment);
+		}
+		blockquote {
+			padding-inline-start: 1.25rem;
+			border-inline-start: 3px solid var(--accent);
+			color: var(--muted);
+			font-style: italic;
+		}
+		hr {
+			border: 0;
+			border-block-start: 1px solid var(--border);
+			margin-block: 2.5em;
+		}
+		img {
+			border-radius: 0.5rem;
+		}
+		table {
+			display: block;
+			overflow-x: auto;
+			border-collapse: collapse;
+			font-size: 0.95em;
+		}
+		th,
+		td {
+			padding: 0.4rem 0.9rem;
+			border: 1px solid var(--border);
+			text-align: start;
+		}
+		th {
+			background: var(--surface);
+			font-family: var(--font-mono);
+			font-size: 0.85em;
+		}
+		p,
+		li {
+			hyphens: auto;
+			overflow-wrap: anywhere;
+		}
+	}
+
+	/* ---- blocks the CMS editor can insert: callout, figure, gallery, embed ---- */
+
+	/* "> [!note] Title". A tinted panel with a coloured edge; the tone picks the colour. */
+	.callout {
+		--tone: var(--blue);
+
+		padding: 0.9rem 1.1rem;
+		border-inline-start: 3px solid var(--tone);
+		border-radius: 0 0.5rem 0.5rem 0;
+		background: color-mix(in oklab, var(--tone), transparent 90%);
+
+		> * + * {
+			margin-block-start: 0.75em;
+		}
+	}
+	.callout--tip {
+		--tone: var(--green);
+	}
+	.callout--warning {
+		--tone: var(--red);
+	}
+	.callout--quote {
+		--tone: var(--grey);
+	}
+	.callout__title {
+		font-family: var(--font-mono);
+		font-size: 0.8em;
+		font-weight: 600;
+		letter-spacing: 0.02em;
+		color: var(--tone);
+	}
+	/* --grey is decoration only and fails text contrast, so the quote tone's title uses the readable grey */
+	.callout--quote .callout__title {
+		color: var(--comment);
+	}
+
+	.figure,
+	.gallery,
+	.embed {
+		margin-block: 2em;
+
+		img {
+			margin-inline: auto;
+		}
+		figcaption {
+			margin-block-start: 0.6em;
+			font-size: 0.85em;
+			color: var(--comment);
+			text-align: center;
+		}
+	}
+	.figure--small img {
+		max-inline-size: min(100%, 24rem);
+	}
+	/* Wide figures break out of the text column on screens that have the room. */
+	@media (width >= 60rem) {
+		.figure--wide {
+			margin-inline: -6rem;
+		}
+	}
+
+	.gallery__grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+		gap: 0.5rem;
+
+		img {
+			inline-size: 100%;
+			aspect-ratio: 4 / 3;
+			object-fit: cover;
+		}
+	}
+
+	.embed__frame {
+		aspect-ratio: 16 / 9;
+		border-radius: 0.5rem;
+		overflow: hidden;
+		background: var(--surface);
+
+		iframe {
+			inline-size: 100%;
+			block-size: 100%;
+			border: 0;
+		}
+	}
+	.embed--link {
+		padding: 0.8rem 1.1rem;
+		border: 1px solid var(--border);
+		border-radius: 0.5rem;
+		background: var(--surface);
+		font-family: var(--font-mono);
+		font-size: 0.85em;
+		overflow-wrap: anywhere;
+	}
+
+	/* GitHub-style footnotes emitted by remark */
+	.footnotes {
+		margin-block-start: 3rem;
+		padding-block-start: 1rem;
+		border-block-start: 1px solid var(--border);
+		font-size: 0.9em;
+		color: var(--muted);
+
+		ol {
+			padding-inline-start: 1.25rem;
+		}
+		li + li {
+			margin-block-start: 0.5em;
+		}
+	}
+	.footnotes .sr-only {
+		/* keep the visually-hidden "Footnotes" heading */
+		position: absolute;
+	}
+	sup a[data-footnote-ref] {
+		text-decoration: none;
+		padding-inline: 0.1em;
+	}
+}
+
+/* ---------- code ---------- */
+@layer code {
+	/* Inline code follows the page theme. */
+	:not(pre) > code {
+		padding: 0.12em 0.4em;
+		border-radius: 0.3rem;
+		background: var(--surface);
+		font-family: var(--font-mono);
+		font-size: 0.85em;
+		overflow-wrap: anywhere;
+	}
+
+	/* Fenced blocks are always the OPPOSITE theme of the page:
+	   light page -> dark code, dark page -> light code.
+	   Shiki (defaultColor: false) emits --shiki-light / --shiki-dark on each
+	   element; light-dark() takes its first argument in a light scheme.
+	   .astro-code is Astro's own Markdown pipeline; .shiki is the CMS body rendered by lib/blocks.ts. */
+	pre:is(.astro-code, .shiki) {
+		margin-inline: 0;
+		padding: 1rem 1.25rem;
+		overflow-x: auto;
+		border: 1px solid var(--border);
+		border-radius: 0.6rem;
+		background-color: light-dark(var(--shiki-dark-bg), var(--shiki-light-bg));
+		color: light-dark(var(--shiki-dark), var(--shiki-light));
+		font-family: var(--font-mono);
+		font-size: 0.8125rem;
+		line-height: 1.55;
+		tab-size: 2;
+		scrollbar-color: color-mix(in oklab, currentColor, transparent 60%) transparent;
+
+		code {
+			padding: 0;
+			background: none;
+			font: inherit;
+		}
+		span {
+			color: light-dark(var(--shiki-dark), var(--shiki-light));
+		}
+	}
+}
+
+@layer utilities {
+	.sr-only {
+		position: absolute;
+		inline-size: 1px;
+		block-size: 1px;
+		margin: -1px;
+		padding: 0;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		*,
+		*::before,
+		*::after {
+			transition-duration: 0.01ms !important;
+			animation-duration: 0.01ms !important;
+		}
+	}
+
+	@media (forced-colors: active) {
+		.theme-toggle,
+		.nav-toggle,
+		.mobile-menu__close {
+			border-color: ButtonText;
+		}
+		pre:is(.astro-code, .shiki) {
+			border-color: CanvasText;
+		}
+	}
+}
+
+/* Printing: paper is light, so code goes light-on-paper too. */
+@layer print {
+	@media print {
+		:root {
+			color-scheme: light;
+		}
+		.site-header,
+		.site-footer,
+		.oliv-chat,
+		.skip-link,
+		.toc,
+		.blog-tools,
+		.post-nav {
+			display: none !important;
+		}
+		body {
+			font-size: 11pt;
+		}
+		a {
+			color: inherit;
+		}
+		pre:is(.astro-code, .shiki) {
+			background: transparent;
+			color: var(--fg);
+			border-color: var(--border);
+			white-space: pre-wrap;
+
+			span {
+				color: var(--shiki-light);
+			}
+		}
+	}
+}

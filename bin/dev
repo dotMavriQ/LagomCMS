@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+#
+# Start everything for local work:
+#
+#   http://127.0.0.1:4702         the website, as plain files built from the content
+#   http://127.0.0.1:4702/admin   the admin
+#
+# One server does both: PHP's built-in one, serving this repo. The site is published
+# once at start, and again by the CMS itself whenever you save something.
+#
+#   bin/dev            the above
+#   bin/dev --watch    also run Astro's dev server on http://127.0.0.1:4716, for
+#                      working on the site's own code (reloads on change)
+#
+# Ctrl+C stops everything.
+
+set -euo pipefail
+cd "$(dirname "$0")/.."
+
+CMS=127.0.0.1:4702
+export LAGOM_URL="http://$CMS"
+
+[ -d vendor ] || composer install
+# The site and the Astro package share one install, from the repository root.
+[ -d node_modules ] || pnpm install --frozen-lockfile
+[ -d admin/node_modules ] || (cd admin && pnpm install --frozen-lockfile)
+mkdir -p var
+
+# The editor's JavaScript: admin/src/ bundled into public/admin/build/.
+(cd admin && pnpm build)
+
+# xdebug makes every request several times slower and is only wanted on purpose.
+# The upload limits are raised because PHP's default of 2 MB is smaller than a photo.
+php -d xdebug.mode=off -d upload_max_filesize=32M -d post_max_size=40M \
+    -S "$CMS" -t public public/index.php &
+trap 'kill $(jobs -p) 2>/dev/null' EXIT
+
+# Wait for the CMS to answer, then publish the site from it.
+until curl -fs "http://$CMS/api/v1/system/health" > /dev/null; do sleep 0.2; done
+php -d xdebug.mode=off bin/lagom build "http://$CMS"
+
+if [ "${1:-}" = "--watch" ]; then
+    cd "${LAGOM_SITE:-site}"
+    pnpm exec astro dev --host 127.0.0.1 --port 4716
+else
+    echo "Site:  http://$CMS/"
+    echo "Admin: http://$CMS/admin"
+    wait
+fi

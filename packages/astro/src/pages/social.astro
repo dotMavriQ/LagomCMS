@@ -1,0 +1,215 @@
+---
+import Base from '../layouts/Base.astro';
+import HeroBackdrop from '../components/HeroBackdrop.astro';
+import { backdrops } from '../lib/backdrops';
+import { renderBlocks } from '../lib/blocks';
+import { SOCIAL, esc, renderPost, sized } from '../lib/fediverse';
+import { getSingleton } from '../lib/lagom';
+import { SITE } from '../site';
+import { feedPage } from '../lib/social-feed';
+import '../styles/social.css';
+
+// Which server, which account and what to say about them all come from the CMS (Social, in the
+// admin). SOCIAL holds the addresses; the document itself has the words.
+const social = await getSingleton<{ lede?: string; description?: string }>('social').catch(() => null);
+const lede = social?.fields.lede ?? '';
+// The "why the fediverse?" note is the document's own text. No text, no button.
+const intro = social && Array.isArray(social.blocks) && social.blocks.length > 0 ? await renderBlocks(social.blocks, []) : '';
+// A note written once per language (an <article data-lang="sv"> each) gets a language switch.
+const LANGUAGES = [
+	{ code: 'sv', flag: '🇸🇪', name: 'Svenska' },
+	{ code: 'en', flag: '🇬🇧', name: 'English' },
+	{ code: 'pt', flag: '🇵🇹', name: 'Português' },
+	{ code: 'de', flag: '🇩🇪', name: 'Deutsch' },
+	{ code: 'fr', flag: '🇫🇷', name: 'Français' },
+	{ code: 'es', flag: '🇪🇸', name: 'Español' },
+].filter((language) => intro.includes(`data-lang="${language.code}"`));
+const host = SOCIAL.host ? new URL(SOCIAL.host).host : '';
+
+// The newest page of the CMS's fediverse archive is written into the document when the site is
+// built; the CMS builds again when new posts arrive. Older pages are fetched by the browser from
+// the CMS as the reader scrolls (scripts/social.ts).
+const pageNo = 1;
+const page = await feedPage(pageNo);
+const posts = page?.data ?? [];
+const html = posts.map((p, i) => renderPost(p, i === 0 && pageNo === 1)).join('');
+const me = posts.find((p) => p.account.acct === SOCIAL.acct)?.account;
+const nextHref = page?.next ? `/social?page=${page.next}` : undefined;
+---
+
+<Base
+	accent="aqua"
+	title={pageNo > 1 ? `social, page ${pageNo} // ${SITE.name}` : `social // ${SITE.name}`}
+	description={social?.fields.description || `Posts from the fediverse${host ? `, by way of ${host}` : ''}.`}
+	image="/img/og/social.png"
+	noindex={pageNo > 1}
+>
+	<Fragment slot="head">
+		{SOCIAL.host && <link rel="preconnect" href={SOCIAL.host} crossorigin />}
+		{SOCIAL.mediaHost && <link rel="preconnect" href={`https://${SOCIAL.mediaHost}`} />}
+	</Fragment>
+	<HeroBackdrop slot="backdrop" photo={backdrops.social} variant="page" position="50% 35%" />
+
+	<div class="social container" data-host={SOCIAL.host} data-acct={SOCIAL.acct} data-profile-url={SOCIAL.profileUrl} data-media-host={SOCIAL.mediaHost}>
+		<aside class="social-side" aria-labelledby="social-title">
+			<div class="social-card">
+				<p class="social-eyebrow">fediverse</p>
+				<div class="social-id">
+					{me && <img class="social-id__avatar" src={sized(me.avatar, 160)} alt="" width="72" height="72" />}
+					<h1 id="social-title">social</h1>
+				</div>
+				{SOCIAL.acct && <p class="social-id__handle">@{SOCIAL.acct}<wbr />@{host}</p>}
+				{lede && <p class="social-lede" set:html={esc(lede)} />}
+				{page && page.total > 0 && (
+					<p class="social-stat"><span>{page.total}</span> posts in the archive</p>
+				)}
+				{/* Follow, profile and the links only make sense once there is an account to point at. */}
+				{SOCIAL.acct ? (
+					<Fragment>
+					<div class="social-actions">
+						<button id="social-follow-btn" class="action-btn action-btn--primary" type="button" aria-haspopup="dialog"><span aria-hidden="true">⁂</span> follow</button>
+						<button class="action-btn" type="button" data-profile={SOCIAL.acct} aria-haspopup="dialog">profile</button>
+						{intro && <button id="social-why-btn" class="action-btn" type="button" aria-haspopup="dialog">why the fediverse?</button>}
+					</div>
+					<p class="social-links">
+						<a href={SOCIAL.profileUrl} target="_blank" rel="noopener">{host}<span class="sr-only"> (opens the profile in a new tab)</span>&nbsp;<span aria-hidden="true">↗</span></a>
+						<a href={`${SOCIAL.profileUrl}/feed.atom`}>atom feed</a>
+					</p>
+					</Fragment>
+				) : (
+					<p class="social-lede">No fediverse account is set up yet. Add yours under Social in the admin.</p>
+				)}
+			</div>
+		</aside>
+
+		<section class="social-feed" aria-labelledby="social-posts-title">
+			<h2 id="social-posts-title" class="sr-only">Posts</h2>
+			{pageNo > 1 && <p class="social-pager"><a href="/social">← newest posts</a> <span>page {pageNo} of {page?.pages ?? '?'}</span></p>}
+			{
+				page ? (
+					<div id="social-posts" class="sp-list" data-gallery-root set:html={html} />
+				) : (
+					<div class="social-empty" role="alert">
+						<p>The feed could not be loaded just now.</p>
+						<a class="action-btn" href="/social">try again</a>
+					</div>
+				)
+			}
+			{
+				page && (
+					<div id="social-more" class="social-more" data-next={page.next ?? undefined} data-total={page.total} data-page={pageNo}>
+						{nextHref ? (
+							<a id="social-load-more" class="load-more-btn" href={nextHref}>
+								load more
+							</a>
+						) : (
+							<p class="social-end">that is everything</p>
+						)}
+						<p id="social-status" class="filter-count" role="status">
+							{page.total > 0 && pageNo === 1 ? `showing ${posts.length} of ${page.total}` : ''}
+						</p>
+					</div>
+				)
+			}
+		</section>
+	</div>
+
+	<!-- Image viewer. Walks every image in the list it was opened from, post by post. -->
+	<dialog id="social-lightbox" class="lightbox" aria-label="Image viewer">
+		<div class="lightbox__bar">
+			<p id="lb-count" class="lightbox__count"></p>
+			<button class="lightbox__close" type="button" data-close aria-label="Close image viewer">×</button>
+		</div>
+		<figure class="lightbox__stage">
+			<img id="lb-img" src="data:," alt="" />
+			<div id="lb-cw" class="lightbox__cw" hidden>
+				<button type="button" id="lb-cw-btn"><span id="lb-cw-title">sensitive content</span><span>show image</span></button>
+			</div>
+			<figcaption id="lb-alt" class="lightbox__alt"></figcaption>
+		</figure>
+		<button id="lb-prev" class="lightbox__nav lightbox__nav--prev" type="button" aria-label="Previous image"><span aria-hidden="true">←</span></button>
+		<button id="lb-next" class="lightbox__nav lightbox__nav--next" type="button" aria-label="Next image"><span aria-hidden="true">→</span><span id="lb-more" class="lightbox__more"></span></button>
+		<p class="lightbox__hint" aria-hidden="true">← → images · shift skips a post · esc closes</p>
+	</dialog>
+
+	<!-- Profile card: the in-page answer to "who posted this", with one deliberate way out to the instance. -->
+	<dialog id="social-profile" class="sheet sheet--profile" aria-labelledby="profile-name">
+		<div class="profile__banner" id="profile-banner"></div>
+		<button class="sheet__close" type="button" data-close aria-label="Close profile">×</button>
+		<div class="profile__head">
+			<img class="profile__avatar" id="profile-avatar" src="data:," alt="" width="88" height="88" />
+			<div>
+				<h2 id="profile-name">…</h2>
+				<p class="profile__handle" id="profile-handle"></p>
+			</div>
+		</div>
+		<div class="profile__bio" id="profile-bio"></div>
+		<dl class="profile__fields" id="profile-fields" hidden></dl>
+		<dl class="profile__stats">
+			<div><dt>posts</dt><dd id="profile-posts">–</dd></div>
+			<div><dt>following</dt><dd id="profile-following">–</dd></div>
+			<div><dt>followers</dt><dd id="profile-followers">–</dd></div>
+		</dl>
+		<p class="profile__foot">
+			<span id="profile-joined"></span>
+			<a id="profile-go" href={SOCIAL.profileUrl} target="_blank" rel="noopener">open profile<span class="sr-only"> (new tab)</span> <span aria-hidden="true">↗</span></a>
+		</p>
+		<p class="profile__status" id="profile-status" role="status"></p>
+	</dialog>
+
+	<!-- Hashtag results, sliding in from the start edge. -->
+	<dialog id="social-tags" class="sheet sheet--side" aria-labelledby="tags-title">
+		<header class="sheet__head">
+			<h2 id="tags-title">#</h2>
+			<button class="sheet__close" type="button" data-close aria-label="Close tag results">×</button>
+		</header>
+		<p id="tags-status" class="filter-count" role="status"></p>
+		<div id="tags-list" class="sp-list sp-list--compact" data-gallery-root></div>
+	</dialog>
+
+	<!-- Remote follow: hand the visitor to their own instance to confirm. -->
+	<dialog id="social-follow" class="sheet sheet--small" aria-labelledby="follow-title">
+		<button class="sheet__close" type="button" data-close aria-label="Close">×</button>
+		<h2 id="follow-title">follow from your instance</h2>
+		<p>Enter your fediverse handle and you'll be sent to your own instance to confirm.</p>
+		<form id="follow-form" class="follow-form" novalidate>
+			<label for="follow-handle">Your handle</label>
+			<div class="follow-form__row">
+				<input id="follow-handle" name="handle" type="text" inputmode="email" autocomplete="username" autocapitalize="off" spellcheck="false" placeholder="you@mastodon.social" aria-describedby="follow-error" required />
+				<button class="action-btn action-btn--primary" type="submit">go</button>
+			</div>
+			<p id="follow-error" class="social-error" role="alert"></p>
+		</form>
+		<p class="follow-lurk">Rather lurk? Here's the <a href={`${SOCIAL.profileUrl}/feed.atom`}>atom feed</a>.</p>
+	</dialog>
+
+	{
+		intro && (
+			<Fragment>
+			<!-- Why the fediverse. Opens by itself only for ?from=qr (the printed QR codes), otherwise on request. -->
+		<dialog id="social-why" class="sheet sheet--why" aria-labelledby="why-title">
+			<!-- No visible header: the dialog's name stays available to screen readers only. Close shares the language row. -->
+			<h2 id="why-title" class="sr-only">why I'm on the fediverse</h2>
+			<div class="why-bar">
+				<div class="why-lang" role="group" aria-label="Language">
+					{LANGUAGES.map((language) => (
+						<button type="button" class="tag-btn" data-lang={language.code} aria-pressed={language.code === 'en' ? 'true' : 'false'} lang={language.code}>
+							<span aria-hidden="true">{language.flag}</span> {language.name}
+						</button>
+					))}
+				</div>
+				<button class="sheet__close" type="button" data-close aria-label="Close">×</button>
+			</div>
+			<div class="why-body" set:html={intro} />
+			<div class="why-actions">
+				<button id="why-ok" class="action-btn action-btn--primary" type="button" data-close>I understand</button>
+			</div>
+		</dialog>
+			</Fragment>
+		)
+	}
+
+	<script>
+		import '../scripts/social.ts';
+	</script>
+</Base>

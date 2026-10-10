@@ -1,0 +1,89 @@
+---
+import Base from '../../layouts/Base.astro';
+import PostRow from '../../components/PostRow.astro';
+import { getPosts, postPath } from '../../lib/posts';
+import { PERSON, SITE, absoluteUrl } from '../../site';
+
+const posts = await getPosts();
+const tags = [...new Set(posts.flatMap((p) => p.data.tags))].sort();
+const PAGE_SIZE = 6;
+
+const ld = [
+	{
+		'@context': 'https://schema.org',
+		'@type': 'Blog',
+		name: SITE.feed.title,
+		url: `${SITE.url}/blog`,
+		author: { '@id': PERSON['@id'] },
+		blogPost: posts.map((p) => ({
+			'@type': 'BlogPosting',
+			headline: p.data.title,
+			url: absoluteUrl(postPath(p.id)),
+			datePublished: p.data.pubDate.toISOString(),
+		})),
+	},
+];
+---
+
+<Base
+	title={`blog // ${SITE.shortName}`}
+	description={SITE.blogDescription || `Writing by ${PERSON.name || SITE.name}.`}
+	jsonLd={ld}
+	image="/img/og/blog.png"
+	accent="aqua"
+>
+	<!-- Without JS there is no pagination or filtering: show everything. -->
+	<noscript slot="head">
+		<style>
+			.post-row[hidden] {
+				display: block !important;
+			}
+			#load-more-wrap,
+			.blog-tools {
+				display: none;
+			}
+		</style>
+	</noscript>
+	<section class="blog-index container">
+		<h1>blog</h1>
+		<p class="lede">Writing about software, systems I build, and the work behind them.</p>
+
+		<div class="blog-tools">
+			<label class="sr-only" for="blog-search">Search posts</label>
+			<input id="blog-search" type="search" autocomplete="off" placeholder="Search posts..." />
+			<div id="tag-filter" class="tag-filter" role="group" aria-label="Filter by tag">
+				<button type="button" class="tag-btn" data-tag="__all__" data-active="true" aria-pressed="true">All</button>
+				{
+					tags.map((tag) => (
+						<button type="button" class="tag-btn" data-tag={tag} data-active="false" aria-pressed="false">
+							{tag}
+						</button>
+					))
+				}
+			</div>
+			<p id="filter-count" class="filter-count" role="status" hidden></p>
+		</div>
+
+		<ul id="blog-grid" class="post-list" role="list">
+			{
+				posts.map((post, i) => (
+					<PostRow
+						post={post}
+						featured={i === 0}
+						yearStart={i > 0 && (i === 1 || posts[i - 1].data.pubDate.getUTCFullYear() !== post.data.pubDate.getUTCFullYear())}
+						hidden={i >= PAGE_SIZE}
+					/>
+				))
+			}
+		</ul>
+
+		<div id="load-more-wrap" class="load-more-wrap">
+			<button id="load-more-btn" type="button" class="load-more-btn">load more</button>
+		</div>
+
+	</section>
+
+	<script>
+		import '../../scripts/blog-filter.ts';
+	</script>
+</Base>

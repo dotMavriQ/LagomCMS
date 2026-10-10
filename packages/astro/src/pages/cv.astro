@@ -1,0 +1,192 @@
+---
+import Base from '../layouts/Base.astro';
+import { getCv } from '../lib/cv';
+import { getPerson } from '../lib/person';
+import { SITE } from '../site';
+
+const cv = await getCv();
+
+const monthFmt = new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
+
+const person = await getPerson();
+
+// The address is never written into the page. The button carries it scrambled (reversed
+// base64) and scripts/site.ts turns that into a mailto: link in the browser.
+const emailToken = cv.email ? [...btoa(cv.email)].reverse().join('') : undefined;
+const jsonLd = [
+	{
+		'@context': 'https://schema.org',
+		'@type': 'ProfilePage',
+		url: `${SITE.url}/cv`,
+		dateModified: cv.updated.toISOString(),
+		mainEntity: person.ld,
+	},
+];
+---
+
+<Base
+	accent="green"
+	title={`cv // ${SITE.shortName}`}
+	description={`CV: ${cv.title}, ${cv.roleTitle}, based in ${cv.location}. Currently at ${cv.employer}.`}
+	image="/img/og/cv.png"
+	ogType="profile"
+	jsonLd={jsonLd}
+>
+	<section class="cv container">
+		<header class="cv-header">
+			<div class="cv-id">
+				<p class="cv-label-tag">CURRICULUM VITAE</p>
+				<h1>{cv.title}</h1>
+				<p class="cv-title">{cv.roleTitle}</p>
+			</div>
+			<ul class="cv-contact" role="list" aria-label="Contact">
+				<li class="cv-location">{cv.location}</li>
+				{emailToken && (
+					<li>
+						<a aria-label="Email me" data-m={emailToken} data-print-reveal href="/contact" id="cv-email">
+							<span class="cv-email-copy">email me</span>
+						</a>
+					</li>
+				)}
+				{cv.linkedin && (
+					<li><a href={cv.linkedin} rel="noopener" target="_blank">{cv.linkedin.replace(/^https?:\/\//, '')}</a></li>
+				)}
+				{cv.github && <li><a href={cv.github} rel="noopener" target="_blank">{cv.github.replace(/^https?:\/\//, '')}</a></li>}
+				<li><a href="/contact">{new URL(SITE.url).host}/contact</a></li>
+			</ul>
+			<div class="cv-actions">
+				<button class="cv-download-btn" id="cv-print-btn" type="button">Print CV</button>
+				<span class="cv-updated">Updated {monthFmt.format(cv.updated)}</span>
+			</div>
+		</header>
+
+		<div class="cv-layout">
+			<div class="cv-main">
+				<section class="cv-section cv-summary" aria-labelledby="cv-summary-h">
+					<h2 class="cv-section-heading" id="cv-summary-h">summary</h2>
+					<Fragment set:html={cv.summaryHtml} />
+				</section>
+
+				<section class="cv-section" aria-labelledby="cv-experience">
+					<h2 class="cv-section-heading" id="cv-experience">experience</h2>
+					<div class="cv-timeline">
+						{cv.jobs.map((job) => (
+							<article class="cv-job">
+								<div class="cv-job-header">
+									<h3>
+										<span class="cv-org">{job.org}</span>
+										<span class="cv-role">{job.title}</span>
+									</h3>
+									<span class="cv-dates">{job.dates}</span>
+								</div>
+								<ul>
+									{job.bullets.map((b) => <li>{b}</li>)}
+								</ul>
+							</article>
+						))}
+					</div>
+				</section>
+
+				{cv.additional.length > 0 && (
+					<section class="cv-section" aria-labelledby="cv-additional">
+						<h2 class="cv-section-heading" id="cv-additional">additional experience</h2>
+						<div class="cv-additional-grid">
+							{cv.additional.map((role) => (
+								<article class="cv-additional-card">
+									<div class="cv-job-header">
+										<h3>
+											<span class="cv-org">{role.org}</span>
+											<span class="cv-role">{role.title}</span>
+										</h3>
+										<span class="cv-dates">{role.dates}</span>
+									</div>
+									<ul>
+										{role.bullets.map((b) => <li>{b}</li>)}
+									</ul>
+								</article>
+							))}
+						</div>
+					</section>
+				)}
+			</div>
+
+			<aside class="cv-side" aria-label="Skills, education and languages">
+				<section class="cv-section cv-skills-block" aria-labelledby="cv-skills-h">
+					<h2 class="cv-section-label" id="cv-skills-h">KEY SKILLS</h2>
+					<div class="cv-skills-rows">
+						{cv.skills.map((group) => (
+							<div class="cv-skill-row">
+								<span class="cv-skill-cat">{group.title}</span>
+								<div class="cv-skill-tags">
+									{group.items.map((tag) => <span class="cv-tag">{tag}</span>)}
+								</div>
+							</div>
+						))}
+					</div>
+				</section>
+
+				{cv.education.length > 0 && (
+					<section class="cv-section" aria-labelledby="cv-education">
+						<h2 class="cv-section-heading" id="cv-education">education</h2>
+						<div class="cv-edu-grid">
+							{cv.education.map((role) => (
+								<article class="cv-edu-card">
+									<div class="cv-edu-year">{role.dates}</div>
+									<div class="cv-edu-body">
+										<h3>
+											<span class="cv-org">{role.org}</span>
+											<span class="cv-role">{role.title}</span>
+										</h3>
+										{role.bullets[0] && <p>{role.bullets[0]}</p>}
+									</div>
+								</article>
+							))}
+						</div>
+					</section>
+				)}
+
+				<section class="cv-section" aria-labelledby="cv-languages">
+					<h2 class="cv-section-heading" id="cv-languages">languages &amp; references</h2>
+					<div class="cv-footer-strip">
+						<div class="cv-footer-col">
+							<h3 class="cv-section-label">LANGUAGES</h3>
+							<p>
+								{cv.languages.map((lang, i) => {
+									const m = lang.match(/^(.*?)\s*\(([^)]+)\)$/);
+									return (
+										<>
+											{i > 0 && ' · '}
+											{m ? (
+												<>
+													{m[1]}
+													<span class="cv-lang-level">({m[2]})</span>
+												</>
+											) : (
+												lang
+											)}
+										</>
+									);
+								})}
+							</p>
+						</div>
+						<div class="cv-footer-col">
+							<h3 class="cv-section-label">REFERENCES</h3>
+							{cv.references.length > 0 ? (
+								<ul role="list">
+									{cv.references.map((r) => (
+										<li>
+											{r.url ? <a href={r.url} target="_blank" rel="noopener">{r.name}</a> : r.name}
+											{r.role ? `, ${r.role}` : ''} — {r.org}
+										</li>
+									))}
+								</ul>
+							) : (
+								<p>Available on request for all listed positions.</p>
+							)}
+						</div>
+					</div>
+				</section>
+			</aside>
+		</div>
+	</section>
+</Base>

@@ -1,0 +1,139 @@
+---
+import Base from '../../layouts/Base.astro';
+import Series from '../../components/Series.astro';
+import { SITE } from '../../site';
+import HeroArt from '../../components/HeroArt.astro';
+import { tagHue } from '../../data/tags';
+import { renderBlocks } from '../../lib/blocks';
+import {
+	blogPostingLd,
+	breadcrumbLd,
+	formatDate,
+	getPost,
+	getPosts,
+	lastModified,
+	neighbours,
+	ogImageFor,
+	postPath,
+	readingMinutes,
+	wordCount,
+} from '../../lib/posts';
+
+// One page per published post, made when the site is built. A post that does not exist has no
+// file, and the web server answers its address with the 404 page. Old addresses that should
+// forward somewhere are not pages either: see lagom-redirects.json.ts.
+export async function getStaticPaths() {
+	return (await getPosts()).map((post) => ({ params: { id: post.id } }));
+}
+
+const { id } = Astro.params;
+const post = await getPost(id);
+if (!post) throw new Error(`The post "${id}" was listed by the CMS but could not be fetched.`);
+
+const contentHtml = await renderBlocks(post.blocks, post.headings);
+const { title, description, pubDate, tags, hero, series, standfirst } = post.data;
+
+const all = await getPosts();
+const { prev, next } = neighbours(all, post.id);
+const toc = post.headings.filter((h) => h.depth === 2 || h.depth === 3);
+
+const jsonLd = [
+	blogPostingLd(post, ogImageFor(post.id), wordCount(post.blocks)),
+	breadcrumbLd([
+		{ name: 'Home', path: '/' },
+		{ name: 'Blog', path: '/blog' },
+		{ name: title, path: postPath(post.id) },
+	]),
+];
+---
+
+<Base
+	accent="aqua"
+	title={`${title} // ${SITE.shortName}`}
+	description={description}
+	image={ogImageFor(post.id)}
+	ogType="article"
+	article={{ published: pubDate, modified: lastModified(post), tags }}
+	prev={prev && postPath(prev.id)}
+	next={next && postPath(next.id)}
+	jsonLd={jsonLd}
+>
+	<div class="reading-progress" aria-hidden="true"><div id="reading-progress"></div></div>
+	<article class="post container">
+		<header class="post-header">
+			{
+				hero && (
+					<HeroArt
+						class="post-hero"
+						src={hero}
+						width={320}
+						label={`Illustration for ${title}`}
+						transition:name={`hero-${post.id}`}
+					/>
+				)
+			}
+			<div>
+				<p class="post-meta">
+					<time datetime={pubDate.toISOString()}>{formatDate(pubDate)}</time>
+					<span aria-hidden="true">·</span>
+					<span>{readingMinutes(post)} min read</span>
+				</p>
+				<h1 transition:name={`title-${post.id}`}>{title}</h1>
+				{
+					tags.length > 0 && (
+						<ul class="post-tags" role="list" aria-label="Tags">
+							{tags.map((tag) => (
+								<li data-hue={tagHue(tag)}>
+									<a href={`/blog?tags=${encodeURIComponent(tag)}`}>{tag}</a>
+								</li>
+							))}
+						</ul>
+					)
+				}
+			</div>
+		</header>
+
+		<div class="post-layout">
+			{
+				toc.length > 1 && (
+					<details class="toc">
+						<summary>On this page</summary>
+						<nav aria-label="Table of contents">
+							<ol role="list">
+								{toc.map((h) => (
+									<li class={h.depth === 3 ? 'toc-sub' : undefined}>
+										<a href={`#${h.slug}`}>{h.text}</a>
+									</li>
+								))}
+							</ol>
+						</nav>
+					</details>
+				)
+			}
+
+			<div class="post-body">
+				{series && <Series parts={all.filter((p) => p.data.series === series)} currentSlug={post.id} currentTitle={title} standfirst={standfirst} />}
+				<div class="prose" set:html={contentHtml} />
+			</div>
+		</div>
+
+		<nav class="post-nav" aria-label="More posts">
+			{
+				prev && (
+					<a class="post-nav__link" href={postPath(prev.id)} rel="prev">
+						<span class="post-nav__dir">older</span>
+						<span>{prev.data.title}</span>
+					</a>
+				)
+			}
+			{
+				next && (
+					<a class="post-nav__link post-nav__link--next" href={postPath(next.id)} rel="next">
+						<span class="post-nav__dir">newer</span>
+						<span>{next.data.title}</span>
+					</a>
+				)
+			}
+		</nav>
+	</article>
+</Base>

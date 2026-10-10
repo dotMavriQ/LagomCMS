@@ -1,0 +1,39 @@
+---
+/** Decorative cluster of hobby glyphs (Phosphor Icons, "fill" weight, MIT: see src/assets/icons/LICENSE) for the About page. Everything it "says" is in the prose beside it, so it is hidden from
+ *  assistive tech. Positions and sizes are all in cqw (1% of the box's width), so the whole composition scales as one piece. The layout is a circle packing: every glyph sits the same distance from its neighbours. */
+const raw = import.meta.glob<string>('../assets/icons/*.svg', { query: '?raw', import: 'default', eager: true });
+type Icon = 'bass' | 'trek' | 'gym' | 'cook' | 'book' | 'film' | 'mic' | 'camera' | 'branch';
+const icon = (name: Icon) => raw[`../assets/icons/${name}.svg`];
+
+type Hue = 'red' | 'green' | 'yellow' | 'blue' | 'purple' | 'aqua';
+
+const glyphs: { icon: Icon; hue: Hue; x: number; y: number; size: number; rot: number }[] = [
+	{ icon: 'bass', hue: 'purple', x: 32.6, y: 24.6, size: 44, rot: -6 },
+	{ icon: 'trek', hue: 'green', x: 72.6, y: 17.7, size: 30, rot: 7 },
+	{ icon: 'camera', hue: 'blue', x: 63, y: 47.2, size: 29, rot: -9 },
+	{ icon: 'gym', hue: 'red', x: 16, y: 56.5, size: 25, rot: -14 },
+	{ icon: 'book', hue: 'yellow', x: 41.8, y: 69.1, size: 29, rot: 6 },
+	{ icon: 'film', hue: 'red', x: 66, y: 86.2, size: 27, rot: 8 },
+	{ icon: 'mic', hue: 'aqua', x: 84.8, y: 65.9, size: 25, rot: 10 },
+	{ icon: 'cook', hue: 'yellow', x: 16.2, y: 84.2, size: 27, rot: 6 },
+	{ icon: 'branch', hue: 'green', x: 40.6, y: 98.3, size: 26, rot: -4 },
+];
+---
+
+<div class="ab-cloud" aria-hidden="true">
+	<!-- Ink trap: blur, then re-sharpen the alpha. Smooths the stair-steps on rotated edges and softly rounds hard corners, but keeps
+	     a crisp edge (a plain CSS blur() cannot: it does nothing below ~0.7px, then goes fuzzy). -->
+	<svg width="0" height="0" focusable="false" style="position:absolute">
+		<filter id="ab-ink" x="-5%" y="-5%" width="110%" height="110%" color-interpolation-filters="sRGB">
+			<feGaussianBlur stdDeviation="1" />
+			<feComponentTransfer>
+				<feFuncA type="linear" slope="3.4" intercept="-1.2" />
+			</feComponentTransfer>
+		</filter>
+	</svg>
+	{glyphs.map((g) => (
+		<span class="ab-cloud__glyph" data-hue={g.hue} style={`--x:${g.x};--y:${g.y};--s:${g.size}cqw;--r:${g.rot}deg`}>
+			<Fragment set:html={icon(g.icon)} />
+		</span>
+	))}
+</div>

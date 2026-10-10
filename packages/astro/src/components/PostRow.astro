@@ -1,0 +1,61 @@
+---
+import HeroArt from './HeroArt.astro';
+import { excerptOf, formatDate, postPath, readingMinutes, type Post } from '../lib/posts';
+import { tagHue } from '../data/tags';
+
+interface Props {
+	post: Post;
+	/** The newest post: the lead story at the top of the index. */
+	featured?: boolean;
+	/** First visible post of its year: shows the year heading above it. Recomputed by blog-filter.ts. */
+	yearStart?: boolean;
+	/** Hidden until "load more". */
+	hidden?: boolean;
+}
+
+const { post, featured = false, yearStart = false, hidden = false } = Astro.props;
+const { title, tags, hero, pubDate } = post.data;
+const hue = tags[0] ? tagHue(tags[0]) : 'aqua';
+const href = postPath(post.id);
+const year = String(pubDate.getUTCFullYear());
+const dayMonth = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(pubDate);
+---
+
+<li
+	class="post-row"
+	data-hue={hue}
+	data-featured={featured ? '' : undefined}
+	data-year={year}
+	data-year-start={yearStart ? '' : undefined}
+	hidden={hidden}
+	data-slug={post.id}
+	data-tags={tags.join(',')}
+	data-title={title.toLowerCase()}
+	data-excerpt={excerptOf(post).toLowerCase()}
+>
+	<article>
+		<p class="post-row__year" aria-hidden="true">{year}</p>
+		<time class="post-row__date" datetime={pubDate.toISOString()}>{dayMonth}<span class="post-row__date-year"> {year}</span></time>
+		<div class="post-row__body">
+			<h2 class="post-title">
+				<a href={href} transition:name={`title-${post.id}`}>{title}</a>
+			</h2>
+			<p class="post-preview">{excerptOf(post)}</p>
+			<div class="post-row__meta">
+				<span class="post-meta">
+					<span class="post-row__meta-date">{formatDate(pubDate)} · </span>{readingMinutes(post)} min read
+				</span>
+				{
+					tags.length > 0 && (
+						<ul class="post-tags" role="list" aria-label="Tags">
+							{tags.map((tag) => (
+								<li data-hue={tagHue(tag)}>{tag}</li>
+							))}
+						</ul>
+					)
+				}
+			</div>
+		</div>
+		{hero && <HeroArt class="post-thumb" src={hero} width={featured ? 200 : 88} transition:name={`hero-${post.id}`} />}
+	</article>
+</li>

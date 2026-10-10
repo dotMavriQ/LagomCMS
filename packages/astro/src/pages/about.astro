@@ -1,0 +1,217 @@
+---
+import Base from '../layouts/Base.astro';
+import HobbyCloud from '../components/HobbyCloud.astro';
+import { getPerson } from '../lib/person';
+import '../styles/about.css';
+import { SITE } from '../site';
+import { getList, getSingleton } from '../lib/lagom';
+import { renderBlocks } from '../lib/blocks';
+
+const person = await getPerson();
+const jobTitle = person.jobTitle;
+const ld = [
+	{
+		'@context': 'https://schema.org',
+		'@type': 'ProfilePage',
+		url: `${SITE.url}/about`,
+		...(person.updated ? { dateModified: person.updated.toISOString() } : {}),
+		mainEntity: person.ld,
+	},
+];
+
+// Everything this page says comes from the CMS, where it is edited under About:
+//   about       the top of the page, the numbers, the closing text and buttons
+//   about_eras  the chapters of the journey (the "Journey" tab)
+//   stack       the rows of the stack section (the "Stack" tab)
+// The job title is the CV's. The hobby glyphs are a fixed composition, see HobbyCloud.astro.
+interface AboutFields {
+	title: string;
+	tab_title?: string;
+	description?: string;
+	facts?: string[];
+	availability?: string;
+	portrait_alt?: string;
+	stats?: { value: string; label: string }[];
+	next?: { label: string; url: string; note?: string }[];
+}
+interface EraFields {
+	title: string;
+	when?: string;
+	where?: string;
+	lead?: string;
+	now?: boolean;
+	sort_key: number;
+}
+interface StackFields {
+	title: string;
+	items: string[];
+	hue: string;
+	sort_key: number;
+}
+
+const [aboutDoc, eraDocs, stackDocs] = await Promise.all([
+	getSingleton<AboutFields>('about'),
+	getList<EraFields>('about_eras', { withBlocks: true }),
+	getList<StackFields>('stack'),
+]);
+const about = aboutDoc.fields;
+const bySortKey = (a: { fields: { sort_key: number } }, b: { fields: { sort_key: number } }) => a.fields.sort_key - b.fields.sort_key;
+const blocksOf = (doc: { blocks?: unknown }) => (Array.isArray(doc.blocks) ? doc.blocks : []);
+
+// An uploaded portrait, or the photo the site ships with.
+const portrait = aboutDoc.assets?.portrait ?? { src: '/img/portrait.webp', width: 565, height: 754 };
+
+const stats = about.stats ?? [];
+
+const journey = await Promise.all(
+	eraDocs.sort(bySortKey).map(async (era) => ({
+		...era.fields,
+		// The apostrophe swap keeps the markup the same as when these paragraphs were written in
+		// this file, where Astro escaped them. It changes nothing a reader can see.
+		html: (await renderBlocks(blocksOf(era), [])).replaceAll("'", '&#39;'),
+	})),
+);
+
+const stack = stackDocs.sort(bySortKey).map((row) => row.fields);
+
+/** The closing section, "outside the editor": the About document's own text, links included. */
+const lifeHtml = await renderBlocks(blocksOf(aboutDoc), []);
+
+const next = about.next ?? [];
+---
+
+<Base
+	accent="purple"
+	title={about.tab_title || `about // ${SITE.shortName}`}
+	description={about.description || [person.name, jobTitle].filter(Boolean).join(', ') + '.'}
+	image="/img/og/about.png"
+	ogType="profile"
+	jsonLd={ld}
+>
+	<article class="about container">
+		<header class="ab-hero">
+			<div class="ab-hero__copy">
+				<p class="ab-eyebrow">about</p>
+				<h1 class="ab-name">{about.title}</h1>
+				<p class="ab-role">{jobTitle}</p>
+				<ul class="ab-facts-inline" role="list">
+					{(about.facts ?? []).map((fact) => <li>{fact}</li>)}
+					{about.availability && <li class="ab-status">{about.availability}</li>}
+				</ul>
+			</div>
+			<figure class="ab-hero__photo">
+				<img
+					src={portrait.src}
+					alt={about.portrait_alt ?? ''}
+					width={portrait.width}
+					height={portrait.height}
+					loading="eager"
+					fetchpriority="high"
+				/>
+				<!-- a single azulejo tile, a quiet nod to Portugal; decorative -->
+				<svg class="ab-tile" viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+					<rect width="48" height="48" class="ab-tile__bg" />
+					<g fill="none" stroke="currentColor" stroke-width="1.5">
+						<circle cx="0" cy="0" r="15" />
+						<circle cx="48" cy="0" r="15" />
+						<circle cx="0" cy="48" r="15" />
+						<circle cx="48" cy="48" r="15" />
+						<circle cx="0" cy="0" r="9" />
+						<circle cx="48" cy="0" r="9" />
+						<circle cx="0" cy="48" r="9" />
+						<circle cx="48" cy="48" r="9" />
+					</g>
+					<g fill="currentColor" fill-opacity="0.16" stroke="currentColor" stroke-width="1.5">
+						<circle cx="24" cy="17" r="7.5" />
+						<circle cx="24" cy="31" r="7.5" />
+						<circle cx="17" cy="24" r="7.5" />
+						<circle cx="31" cy="24" r="7.5" />
+					</g>
+					<circle cx="24" cy="24" r="3" fill="currentColor" />
+				</svg>
+			</figure>
+		</header>
+
+		<dl class="ab-stats">
+			{
+				stats.map((s) => (
+					<div>
+						<dt>{s.label}</dt>
+						<dd>
+							{s.value === 'heart' ? (
+								<span role="img" aria-label="love">
+									<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+										<path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+									</svg>
+								</span>
+							) : (
+								s.value
+							)}
+						</dd>
+					</div>
+				))
+			}
+		</dl>
+
+		<section aria-labelledby="journey-heading">
+			<h2 class="ab-heading" id="journey-heading"><span class="ab-heading__n" aria-hidden="true">01</span>journey</h2>
+			<ol class="ab-timeline" role="list">
+				{
+					journey.map((era) => (
+						<li class="ab-era" data-now={era.now ? '' : undefined}>
+							<div class="ab-era__head">
+								<p class="ab-era__when">{era.when}</p>
+								<h3 class="ab-era__title">{era.title}</h3>
+								<p class="ab-era__where">{era.where}</p>
+							</div>
+							<div class="ab-era__body">
+								<p class="ab-era__lead">{era.lead}</p>
+								<Fragment set:html={era.html} />
+							</div>
+						</li>
+					))
+				}
+			</ol>
+		</section>
+
+		<section aria-labelledby="stack-heading">
+			<h2 class="ab-heading" id="stack-heading"><span class="ab-heading__n" aria-hidden="true">02</span>stack</h2>
+			<dl class="ab-stack">
+				{
+					stack.map((g) => (
+						<div class="ab-stack__row" data-hue={g.hue}>
+							<dt>{g.title}</dt>
+							<dd>
+								<ul class="ab-chips ab-chips--hue" role="list">
+									{g.items.map((i) => (
+										<li>{i}</li>
+									))}
+								</ul>
+							</dd>
+						</div>
+					))
+				}
+			</dl>
+		</section>
+
+		<section aria-labelledby="life-heading">
+			<h2 class="ab-heading" id="life-heading"><span class="ab-heading__n" aria-hidden="true">03</span>outside the editor</h2>
+			<div class="ab-life">
+				<div class="ab-life__text" set:html={lifeHtml} />
+				<HobbyCloud />
+			</div>
+		</section>
+
+		<nav aria-label="Explore more" class="ab-next">
+			{
+				next.map((n) => (
+					<a class="ab-cta" href={n.url}>
+						<span class="ab-cta__label">{n.label}</span>
+						<span class="ab-cta__note">{n.note}</span>
+						<span class="ab-cta__arrow" aria-hidden="true">→</span>
+					</a>
+				))
+			}
+		</nav>
+	</article>
+</Base>

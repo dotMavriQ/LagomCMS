@@ -1,0 +1,17 @@
+---
+import { LINKS, SITE } from '../site';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+	<div class="container footer-bar">
+		<p>
+			&copy; {year} {SITE.shortName}.{' '}<span class="slash" aria-hidden="true">//</span>{' '}crafted with intent using{' '}<a
+				href={LINKS.lagomcms}
+				target="_blank"
+				rel="noopener">LagomCMS</a
+			>
+		</p>
+	</div>
+</footer>

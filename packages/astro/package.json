@@ -1,0 +1,35 @@
+{
+  "name": "@lagomcms/astro",
+  "version": "0.1.0",
+  "description": "The Astro side of LagomCMS: pages, blocks and a default look, added to a stock Astro project with one line.",
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "astro-integration",
+    "withastro",
+    "cms",
+    "lagomcms"
+  ],
+  "exports": {
+    ".": "./index.mjs",
+    "./src/*": "./src/*"
+  },
+  "files": [
+    "index.mjs",
+    "src",
+    "public"
+  ],
+  "peerDependencies": {
+    "astro": "^7.3.3"
+  },
+  "dependencies": {
+    "@astrojs/rss": "4.0.19",
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@fontsource-variable/source-serif-4": "5.3.0",
+    "@fontsource/jetbrains-mono": "5.2.8",
+    "opentype.js": "1.3.4",
+    "sharp": "0.35.4",
+    "shiki": "4.4.3",
+    "uqr": "0.1.3"
+  }
+}

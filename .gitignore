@@ -1,0 +1,21 @@
+/vendor/
+/var/
+
+# This installation's own site: its Astro project, its writing, and anything kept for reference.
+# They belong in a repository of their own, not in the CMS's.
+/site/
+/content/
+/reference/
+
+/node_modules/
+/admin/node_modules/
+/public/admin/build/
+/site/node_modules/
+/site/dist/
+/site/.astro/
+/examples/*/node_modules/
+/examples/*/dist/
+/examples/*/.astro/
+/packages/*/node_modules/
+.env
+.lagom-build/

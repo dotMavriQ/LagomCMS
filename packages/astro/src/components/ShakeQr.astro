@@ -1,0 +1,26 @@
+---
+/** A QR code for the site, shown in a dialog when an Android phone is shaken (src/scripts/shake-qr.ts)
+ *  or when the URL has #qr. Encoded here at render time, so no QR library ships to the browser. */
+import { encode } from 'uqr';
+import { SITE } from '../site';
+
+const url = SITE.url;
+// ecc M survives a scuffed or glare-y screen; border 4 is the quiet zone scanners need
+const qr = encode(url, { ecc: 'M', border: 4 });
+const path = qr.data
+	.flatMap((row, y) => row.map((dark, x) => (dark ? `M${x} ${y}h1v1h-1z` : '')))
+	.join('');
+const label = url.replace(/^https?:\/\//, '');
+---
+
+<dialog id="shake-qr" class="shake-qr" aria-labelledby="shake-qr-title">
+	<h2 id="shake-qr-title" class="shake-qr-title">{label}</h2>
+	<svg class="shake-qr-code" viewBox={`0 0 ${qr.size} ${qr.size}`} role="img" aria-label={`QR code that opens ${url}`} shape-rendering="crispEdges">
+		<rect width={qr.size} height={qr.size} fill="var(--bg)"></rect>
+		<path d={path} fill="currentColor"></path>
+	</svg>
+	<p class="shake-qr-hint">Scan to open the site on another device.</p>
+	<form method="dialog">
+		<button class="pill-link shake-qr-close" type="submit">close</button>
+	</form>
+</dialog>

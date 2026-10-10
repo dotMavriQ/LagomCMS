@@ -1,0 +1,88 @@
+---
+import Base from '../layouts/Base.astro';
+import ProjectCard from '../components/ProjectCard.astro';
+import { getProjects } from '../lib/portfolio';
+import { clientWork } from '../lib/clients';
+import { PERSON, SITE } from '../site';
+import browsersIcon from '../assets/icons/browsers.svg?raw';
+import arrowIcon from '../assets/icons/arrow-right.svg?raw';
+
+const projects = await getProjects();
+const featured = projects.filter((p) => p.kind === 'featured-card');
+const primary = projects.filter((p) => p.kind === 'primary-card');
+const compact = projects.filter((p) => p.kind === 'compact-card');
+const meta = projects.filter((p) => p.kind === 'meta-card');
+
+const icons = import.meta.glob<string>('../assets/icons/portfolio/*.svg', { query: '?raw', import: 'default', eager: true });
+const iconFor = (kind: string) => icons[`../assets/icons/portfolio/${kind}.svg`];
+
+const jsonLd = [
+	{
+		'@context': 'https://schema.org',
+		'@type': 'CollectionPage',
+		name: `Portfolio, ${PERSON.alternateName || PERSON.name || SITE.name}`,
+		mainEntity: {
+			'@type': 'ItemList',
+			itemListElement: projects.map((p, i) => ({
+				'@type': 'SoftwareApplication',
+				position: i + 1,
+				name: p.title,
+				description: p.summary,
+				url: p.links[0]?.url,
+			})),
+		},
+	},
+];
+---
+
+<Base
+	accent="blue"
+	title={`portfolio // ${SITE.shortName}`}
+	description={SITE.portfolioDescription || `Things ${PERSON.name || SITE.name} has built.`}
+	image="/img/og/portfolio.png"
+	jsonLd={jsonLd}
+>
+	<div class="portfolio-page container">
+		<section class="portfolio">
+			<div class="portfolio-head">
+				<div class="intro-card">
+					<h1>portfolio</h1>
+					{SITE.portfolioTagline && <p class="tagline">{SITE.portfolioTagline}</p>}
+					{SITE.portfolioIntro.length > 0 && (
+						<p class="sub">
+							{SITE.portfolioIntro.map((line, i) => (
+								<>
+									{i > 0 && <br />}
+									{line}
+								</>
+							))}
+						</p>
+					)}
+				</div>
+				{clientWork && (
+					<a class="pill-link clients-pill" href="/portfolio/clients" aria-label={`Client work: ${clientWork.CLIENT_SITE_COUNT} client websites`}>
+						<span class="pill-icon" set:html={browsersIcon} />
+						<span>Client work</span>
+						<span class="pill-arrow" set:html={arrowIcon} />
+					</a>
+				)}
+			</div>
+
+			{featured.map((project) => <ProjectCard project={project} tag="featured" iconFor={iconFor} />)}
+
+			{primary.length > 0 && (
+				<div class="row-primary">
+					{primary.map((project) => <ProjectCard project={project} tag="primary" iconFor={iconFor} />)}
+				</div>
+			)}
+
+			{compact.length > 0 && (
+				<div class="row-secondary">
+					{compact.map((project) => <ProjectCard project={project} tag="compact" iconFor={iconFor} />)}
+				</div>
+			)}
+
+			{meta.map((project) => <ProjectCard project={project} tag="meta" iconFor={iconFor} />)}
+		</section>
+	</div>
+</Base>

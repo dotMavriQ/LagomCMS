@@ -1,0 +1,11 @@
+---
+import { SITE } from '../site';
+import Base from '../layouts/Base.astro';
+---
+
+<Base accent="red" title={`404 // ${SITE.shortName}`} description="That page doesn't exist." noindex>
+	<section class="container">
+		<h1>404</h1>
+		<p class="lede">That page doesn't exist. <a href="/blog">Back to the blog.</a></p>
+	</section>
+</Base>

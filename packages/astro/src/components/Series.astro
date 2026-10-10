@@ -1,0 +1,41 @@
+---
+import type { Post } from '../lib/posts';
+
+/** The box at the top of a post that belongs to a series: "Part II of III" and links to the
+ *  other parts. A series is simply every post that carries the same Series ID, in the order of
+ *  their part numbers. Each part is listed by its "Label in the series", or its title. */
+interface Props {
+	/** Every post of the series, this one included. */
+	parts: Post[];
+	currentSlug: string;
+	currentTitle: string;
+	standfirst?: string[];
+}
+const { parts, currentSlug, currentTitle, standfirst = [] } = Astro.props;
+
+const ordered = [...parts].sort((a, b) => (a.data.seriesPart ?? 0) - (b.data.seriesPart ?? 0) || a.data.pubDate.valueOf() - b.data.pubDate.valueOf());
+const label = 'Series';
+
+const roman = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X'];
+const index = ordered.findIndex((p) => p.id === currentSlug);
+const kicker = `Part ${roman[index] ?? index + 1} of ${roman[ordered.length - 1] ?? ordered.length}`;
+---
+
+<aside class="series-intro" aria-label={`${label}: ${kicker}`}>
+	<p class="series-kicker">{kicker}</p>
+	<p class="series-label">{label}</p>
+	<ol class="series-links">
+		{
+			ordered.map((part) => (
+				<li>
+					{part.id === currentSlug ? (
+						<span aria-current="page">{currentTitle}</span>
+					) : (
+						<a href={`/blog/${part.id}`}>{part.data.seriesLabel || part.data.title}</a>
+					)}
+				</li>
+			))
+		}
+	</ol>
+	{standfirst.map((p) => <p class="standfirst">{p}</p>)}
+</aside>

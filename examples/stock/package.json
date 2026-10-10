@@ -1,0 +1,14 @@
+{
+  "name": "lagomcms-example-stock",
+  "private": true,
+  "type": "module",
+  "description": "A stock Astro project with LagomCMS added and nothing else. If this renders a whole site, the integration works.",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build"
+  },
+  "dependencies": {
+    "@lagomcms/astro": "workspace:*",
+    "astro": "7.3.3"
+  }
+}

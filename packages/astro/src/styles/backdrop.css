@@ -1,0 +1,168 @@
+/* Start-page backdrop: a black-and-white photograph, graded per theme in pure CSS.
+
+   The grade is a gradient map built from three blend layers stacked on the photo:
+     gain   colour-dodge  brightens the picture by 1 / (1 - c)      (black = untouched)
+     tint   multiply      paints the highlights in this colour
+     floor  screen        lifts the shadows to this colour
+   Every per-theme difference is a *colour* (light-dark), so nothing here is duplicated for the
+   two themes and, because colours are animatable, toggling the theme crossfades the grade.
+   Scrims keep the copy readable; a little grain hides banding in the big sky gradient. */
+@layer components {
+	.backdrop {
+		--gain: light-dark(#767676, #000);
+		--tint: light-dark(#f9edbd, #a99b78);
+		--floor: light-dark(#b9c4a2, #1b2b2d);
+		/* what the scrims dissolve into */
+		--veil: var(--bg);
+		/* the dark sky is still bright enough to need holding back behind the copy; the light one is not */
+		--dim: light-dark(transparent, color-mix(in oklab, var(--veil) 34%, transparent));
+
+		position: fixed;
+		inset: 0;
+		z-index: -1;
+		overflow: clip;
+		isolation: isolate;
+		pointer-events: none;
+		background: var(--bg);
+	}
+
+	.backdrop__picture {
+		display: contents;
+	}
+	.backdrop__photo {
+		position: absolute;
+		inset: 0;
+		inline-size: 100%;
+		block-size: 100%;
+		max-inline-size: none;
+		object-fit: cover;
+		/* keep the cove (left) and the ground in frame when a tall phone screen crops the sides */
+		object-position: var(--photo-position, 28% 100%);
+		/* the source is flat and low-key: a little contrast keeps the sea and foliage from turning to mud */
+		filter: contrast(1.24);
+	}
+
+	.backdrop > div {
+		position: absolute;
+		inset: 0;
+		transition: background-color 0.5s;
+	}
+	.backdrop__gain {
+		background: var(--gain);
+		mix-blend-mode: color-dodge;
+	}
+	.backdrop__tint {
+		background: var(--tint);
+		mix-blend-mode: multiply;
+	}
+	.backdrop__floor {
+		background: var(--floor);
+		mix-blend-mode: screen;
+	}
+
+	/* a low sun-haze in the page accent over the water, so the photo belongs to the palette */
+	.backdrop__glow {
+		background: radial-gradient(
+			ellipse 70% 38% at 72% 74%,
+			color-mix(in oklab, var(--accent) 34%, transparent),
+			transparent
+		);
+		mix-blend-mode: soft-light;
+	}
+
+	.backdrop__scrim {
+		background:
+			/* header and footer dissolve into the page colour */
+			linear-gradient(
+				to bottom,
+				color-mix(in oklab, var(--veil) 92%, transparent) 0,
+				color-mix(in oklab, var(--veil) 62%, transparent) 4.5rem,
+				var(--dim) max(30%, 9rem),
+				var(--dim) 68%,
+				color-mix(in oklab, var(--veil) 68%, transparent) 88%,
+				color-mix(in oklab, var(--veil) 90%, transparent)
+			),
+			/* a soft pool behind the copy */
+				radial-gradient(ellipse 80% 90% at 20% 46%, color-mix(in oklab, var(--veil) 80%, transparent), transparent);
+	}
+
+	.backdrop__grain {
+		background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+		mix-blend-mode: soft-light;
+		opacity: 0.35;
+	}
+
+	/* Long, scrolling pages (/social): the picture is texture behind cards, not a scene behind a headline.
+	   A busy close-up needs an even veil everywhere rather than one pool of shade, and the glow drops. */
+	.backdrop--page {
+		--dim: color-mix(in oklab, var(--veil) light-dark(38%, 52%), transparent);
+
+		.backdrop__photo {
+			filter: contrast(1.1);
+		}
+		.backdrop__glow {
+			background: radial-gradient(ellipse 90% 60% at 80% 10%, color-mix(in oklab, var(--accent) 30%, transparent), transparent);
+		}
+		.backdrop__scrim {
+			background: linear-gradient(
+				to bottom,
+				color-mix(in oklab, var(--veil) 90%, transparent) 0,
+				var(--dim) 7rem,
+				var(--dim) 80%,
+				color-mix(in oklab, var(--veil) 85%, transparent)
+			);
+		}
+	}
+
+	/* the picture settles in once (never when motion is reduced) */
+	@media (prefers-reduced-motion: no-preference) {
+		.backdrop {
+			animation: backdrop-in 1.4s ease-out both;
+		}
+		.backdrop__photo {
+			animation: backdrop-settle 2.4s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+		}
+		@keyframes backdrop-in {
+			from {
+				opacity: 0;
+			}
+		}
+		@keyframes backdrop-settle {
+			from {
+				scale: 1.06;
+			}
+		}
+	}
+
+	/* Copy sits on a photograph now: give the outlined pills a frosted base so they stay legible. */
+	body:has(.backdrop) .hero-links a {
+		background: color-mix(in oklab, var(--bg) 58%, transparent);
+		backdrop-filter: blur(10px) saturate(1.15);
+
+		&:hover {
+			background: var(--fg);
+		}
+	}
+
+	/* Over a full-page photograph the header and footer get a frosted base of their own, so the nav never
+	   depends on what part of the picture happens to be behind it. */
+	body:has(.backdrop--page) :is(.site-header, .site-footer) {
+		background: color-mix(in oklab, var(--bg) 90%, transparent);
+		backdrop-filter: blur(10px);
+	}
+
+	/* Users who ask for more contrast or forced colours get the plain page. */
+	@media (forced-colors: active), (prefers-contrast: more) {
+		.backdrop {
+			display: none;
+		}
+	}
+}
+
+@layer print {
+	@media print {
+		.backdrop {
+			display: none;
+		}
+	}
+}

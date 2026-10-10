@@ -1,0 +1,58 @@
+---
+import { cardKindLabel, type LinkKind, type Project } from '../lib/portfolio';
+
+interface Props {
+	project: Project;
+	tag: 'featured' | 'primary' | 'compact' | 'meta';
+	/** Looked up once in portfolio.astro (import.meta.glob is only valid at module scope) and
+	 *  passed down rather than re-globbed per card. */
+	iconFor: (kind: string) => string | undefined;
+}
+
+const { project: p, tag, iconFor } = Astro.props;
+const article = tag === 'featured' ? 'featured-card' : tag === 'primary' ? 'primary-card' : tag === 'compact' ? 'compact-card' : 'meta-card';
+const descClass = tag === 'featured' ? 'featured-desc' : 'card-desc';
+
+const LINK_DESC: Record<LinkKind, string> = {
+	github: 'on GitHub',
+	live: 'live site',
+	chrome: 'on the Chrome Web Store',
+	firefox: 'on Firefox Add-ons',
+	packagist: 'on Packagist',
+	tui: 'terminal version',
+};
+---
+
+<article class={article} data-hue={p.hue}>
+	<div class={`${tag}-img-wrap`}>
+		<img alt={p.imageAlt} height="600" width="960" loading={tag === 'featured' ? 'eager' : 'lazy'} decoding="async" src={p.plate} />
+	</div>
+	<div class={`${tag}-body`}>
+		<p class="card-kind">{cardKindLabel(p)}</p>
+		<h2>{p.title}</h2>
+		<p class={descClass}>{p.summary}</p>
+		<div class="card-foot">
+			<div class="card-tags">
+				{p.tags.map((label) => <span class="tag">{label}</span>)}
+			</div>
+			<div class="card-links">
+				{p.links.map((link) => {
+					const a11y = `${p.title} ${LINK_DESC[link.kind]}`;
+					const external = !link.url.startsWith('/');
+					return (
+						<a
+							class="card-link"
+							data-kind={link.kind}
+							href={link.url}
+							rel={external ? 'noopener' : undefined}
+							target={external ? '_blank' : undefined}
+							aria-label={a11y}
+							title={a11y}
+							set:html={iconFor(link.kind)}
+						/>
+					);
+				})}
+			</div>
+		</div>
+	</div>
+</article>

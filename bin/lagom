@@ -1,0 +1,124 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Command line chores.
+ *
+ *     bin/lagom user <email> [admin|editor]   create an account, or reset its password
+ *     bin/lagom reindex                       throw the index away and rebuild it
+ *     bin/lagom social-sync                   fetch new fediverse posts for the /social page
+ *                                             (worth running from cron every ten minutes)
+ *     bin/lagom build [url]                   publish the website now; url is where this CMS
+ *                                             answers, and is only needed the very first time
+ */
+
+use Lagom\Auth\Accounts;
+use Lagom\Collections;
+use Lagom\Index\Index;
+use Lagom\Role;
+use Lagom\Site\Builder;
+use Lagom\Social\Feed;
+
+$root = dirname(__DIR__);
+require $root . '/vendor/autoload.php';
+
+// The same LAGOM_DATA the web side reads: where this installation's content/ and var/ are.
+$data = rtrim(getenv('LAGOM_DATA') ?: $root, '/');
+if (!is_dir($data . '/var')) {
+    mkdir($data . '/var', 0775, true);
+}
+
+$command = $argv[1] ?? '';
+
+if ($command === 'user' && isset($argv[2])) {
+    $role = Role::tryFrom($argv[3] ?? 'admin');
+    if ($role === null) {
+        fwrite(STDERR, "The role must be admin or editor.\n");
+        exit(1);
+    }
+
+    // The password is read from the LAGOM_PASSWORD variable when it is set (handy
+    // for scripts), and otherwise typed in without being echoed to the screen.
+    $password = getenv('LAGOM_PASSWORD') ?: '';
+    if ($password === '') {
+        echo 'Password: ';
+        system('stty -echo');
+        $password = trim((string) fgets(STDIN));
+        system('stty echo');
+        echo "\n";
+    }
+    if (strlen($password) < 10) {
+        fwrite(STDERR, "Pick a password of at least 10 characters.\n");
+        exit(1);
+    }
+
+    (new Accounts($data . '/var/accounts.sqlite'))->saveUser($argv[2], $password, $role);
+    echo "Saved {$argv[2]} as {$role->value}.\n";
+    exit(0);
+}
+
+if ($command === 'reindex') {
+    @unlink($data . '/var/index.sqlite');
+    $index = new Index($data . '/var/index.sqlite', $data . '/content', new Collections($root . '/collections'));
+    $started = microtime(true);
+    $count = $index->refresh();
+    printf("Indexed %d documents in %d ms.\n", $count, (microtime(true) - $started) * 1000);
+    exit(0);
+}
+
+if ($command === 'social-sync') {
+    $index = new Index($data . '/var/index.sqlite', $data . '/content', new Collections($root . '/collections'));
+    $index->refresh();
+    $row = $index->find('social', 'social');
+    if ($row === null) {
+        fwrite(STDERR, "There is no content/social/index.md, so there are no rules to sync by.\n");
+        exit(1);
+    }
+    $feed = new Feed($data . '/var/social.json', json_decode($row['fields'], true));
+    echo $feed->sync(), "\n";
+
+    // New posts belong on the Social page, which is a file like every other page.
+    if ($feed->changedArchive()) {
+        $config = require $root . '/config.php';
+        (new Builder($config['site_path'], $config['build_command'], $data, $root))->request($config['internal_url'] ?: null);
+        echo "Publishing the site in the background.\n";
+    }
+    exit(0);
+}
+
+if ($command === 'build') {
+    $config = require $root . '/config.php';
+    $builder = new Builder($config['site_path'], $config['build_command'], $data, $root);
+    if (!$builder->isConfigured()) {
+        fwrite(STDERR, "There is no Astro project at {$config['site_path']}. Set LAGOM_SITE to where yours is.\n");
+        exit(1);
+    }
+
+    // "--queued" is how the web side starts us: build only what was asked for, say nothing.
+    if (($argv[2] ?? '') === '--queued') {
+        exit($builder->run() ? 0 : 1);
+    }
+
+    $url = $argv[2] ?? ($config['internal_url'] ?: null);
+    if ($url !== null) {
+        $builder->remember(rtrim($url, '/'));
+    }
+    if (!$builder->knowsWhereTheCmsIs()) {
+        fwrite(STDERR, "Tell me where this CMS answers, once: bin/lagom build http://127.0.0.1:8080\n");
+        exit(1);
+    }
+
+    $succeeded = $builder->run(evenIfNotAsked: true);
+    $status = $builder->status();
+    if ($succeeded) {
+        printf("Published in %s seconds.\n", $status['seconds'] ?? '?');
+        exit(0);
+    }
+    fwrite(STDERR, $builder->lastLog() . "\nThe build failed; the live site is unchanged.\n");
+    exit(1);
+}
+
+echo "Usage:\n  bin/lagom user <email> [admin|editor]\n  bin/lagom reindex\n  bin/lagom social-sync\n  bin/lagom build [url]\n";
+exit(1);

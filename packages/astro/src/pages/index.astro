@@ -1,0 +1,147 @@
+---
+import Base from '../layouts/Base.astro';
+import SocialIcon from '../components/SocialIcon.astro';
+import HeroBackdrop from '../components/HeroBackdrop.astro';
+import { backdrops } from '../lib/backdrops';
+import { SITE } from '../site';
+import { ICONS, type IconName } from '../data/icons';
+import { getSingleton, type UploadedImage } from '../lib/lagom';
+import { getPerson } from '../lib/person';
+
+/** One button in the row under the slogan, as edited in the CMS (Home > Link buttons). */
+interface HomeLink {
+	label: string;
+	url: string;
+	icon?: string;
+}
+interface HomeFields {
+	title: string;
+	tagline: string[];
+	links?: HomeLink[];
+	tab_title?: string;
+	/** The meta description. Older content kept this sentence in the site settings instead. */
+	description?: string;
+}
+
+interface SiteFields {
+	title: string;
+	description?: string;
+	locale?: string;
+}
+
+// What the home page says comes from the CMS. If the CMS cannot be reached while the site
+// is being built, the page is made from these few defaults instead of failing the build.
+let home: HomeFields = { title: SITE.name, tagline: [] };
+let site: SiteFields = { title: SITE.name, description: SITE.description, locale: SITE.locale };
+// A background photo uploaded in the CMS. Undefined means "use the project's own".
+let backdrop: UploadedImage | undefined;
+// A large logo uploaded for this page (Home > Large logo). Undefined means the built-in bird.
+let mark: UploadedImage | undefined;
+let live = true;
+try {
+	const [homeDoc, siteDoc] = await Promise.all([getSingleton<HomeFields>('home'), getSingleton<SiteFields>('site')]);
+	home = homeDoc.fields;
+	site = siteDoc.fields;
+	backdrop = homeDoc.assets?.backdrop;
+	mark = homeDoc.assets?.mark;
+} catch (err) {
+	live = false;
+	console.error('[lagom] home/site fetch failed, falling back to static copy:', err);
+}
+
+/** What each button needs in the markup, worked out from the row as it was typed in the CMS. */
+const buttons = (home.links ?? []).map((link) => {
+	// An email address is never written into the page. The button points at /contact and carries
+	// the address scrambled in data-m (reversed base64); scripts/site.ts turns it into a mailto:
+	// link in the browser, so harvesters reading the HTML find nothing to collect.
+	const isEmail = /^[^\s@/]+@[^\s@/]+$/.test(link.url.replace(/^mailto:/, ''));
+	const isExternal = /^https?:\/\//.test(link.url);
+	return {
+		label: link.label,
+		href: isEmail ? '/contact' : link.url,
+		target: isExternal ? '_blank' : undefined,
+		// rel="me" says "this profile is the same person as this site". It only does anything where
+		// something checks it: GitHub and the fediverse verify profiles that way. So those two get
+		// it, picked by their icon, and the rest stay plain links.
+		rel: isExternal ? (link.icon === 'github' || link.icon === 'fediverse' ? 'me noopener' : 'noopener') : undefined,
+		scrambled: isEmail ? [...btoa(link.url.replace(/^mailto:/, ''))].reverse().join('') : undefined,
+		// The fediverse has no logo in the icon set; it uses the ⁂ glyph instead.
+		glyph: link.icon === 'fediverse',
+		icon: link.icon && link.icon in ICONS ? (link.icon as IconName) : undefined,
+	};
+});
+
+// The home page's own description wins; the site settings and the built-in sentence are fallbacks.
+const description = home.description || site.description || SITE.description;
+
+const person = await getPerson();
+const homeLd = [
+	{
+		'@context': 'https://schema.org',
+		'@type': 'WebSite',
+		'@id': `${SITE.url}/#website`,
+		name: SITE.name,
+		url: SITE.url,
+		description,
+		inLanguage: SITE.locale,
+		author: { '@id': person.ld['@id'] },
+		publisher: { '@id': person.ld['@id'] },
+	},
+	{ '@context': 'https://schema.org', ...person.ld },
+];
+---
+
+<Base title={home.tab_title || `${SITE.name} // welcome`} description={description} jsonLd={homeLd} accent="yellow">
+	<HeroBackdrop slot="backdrop" photo={backdrops.home} uploaded={backdrop} />
+	<section class="hero hero--screen container" data-lagom-live={live}>
+		<div class="hero-copy">
+			<!-- h-card: machine-readable identity (name, photo, note) for IndieWeb-style consumers. -->
+			<div class="hero-intro h-card">
+				<data class="p-name" value={person.name}></data>
+				<data class="u-url u-uid" value={`${SITE.url}/`}></data>
+				{person.image && <data class="u-photo" value={person.image}></data>}
+				<h1 class="hero-name">{home.title}<span class="cursor" aria-hidden="true"></span></h1>
+				<p class="hero-slogan p-note">
+					{home.tagline.length > 0 ? (
+						home.tagline.map((line, i) => (
+							<>
+								{i > 0 && <br />}
+								{line}
+							</>
+						))
+					) : (
+						<>
+							We keep building tools,<br />hoping that they<br />make us lighter.<br />Sometimes they do.<br />This is a small corner<br
+							/>about the craft of trying.
+						</>
+					)}
+				</p>
+			</div>
+
+			<nav class="hero-links" aria-label="External links">
+				<ul role="list">
+					<!-- rel="me": declares this GitHub profile as the same person as this site. -->
+					{
+						buttons.map((button) => (
+							<li>
+								<a href={button.href} target={button.target} rel={button.rel} data-m={button.scrambled}>
+									{button.glyph ? (
+										<span class="icon icon--glyph" aria-hidden="true">
+											⁂
+										</span>
+									) : (
+										button.icon && <SocialIcon name={button.icon} />
+									)}
+									{button.label}
+								</a>
+							</li>
+						))
+					}
+				</ul>
+			</nav>
+		</div>
+
+		<!-- the bird as a flat silhouette in the page accent (CSS mask over the logo's alpha) -->
+		<div class="hero-mark" aria-hidden="true" style={mark ? `mask-image:url("${mark.src}")` : undefined}></div>
+	</section>
+</Base>

@@ -1,0 +1,11 @@
+---
+import { ICONS, type IconName } from '../data/icons';
+
+interface Props {
+	name: IconName;
+}
+const { attrs, inner } = ICONS[Astro.props.name];
+---
+
+<!-- Decorative: every use sits next to a visible text label. -->
+<svg class="icon" {...attrs} aria-hidden="true" focusable="false" set:html={inner} />

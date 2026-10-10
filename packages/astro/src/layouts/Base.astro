@@ -1,0 +1,212 @@
+---
+import { ClientRouter } from 'astro:transitions';
+import '@fontsource-variable/jetbrains-mono';
+// opsz variants: the serif redraws itself for large display sizes (sharper, tighter headings).
+import '@fontsource-variable/source-serif-4/opsz.css';
+import '@fontsource-variable/source-serif-4/opsz-italic.css';
+// Preloaded below: without it the browser only finds these after parsing the inline CSS, so they arrive a round
+// trip late (a chained critical request, and the late serif swap caused the CV's layout shift). ?url resolves to
+// the same fingerprinted file the @font-face rules use, so nothing downloads twice.
+import monoFontUrl from '@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2?url';
+import serifFontUrl from '@fontsource-variable/source-serif-4/files/source-serif-4-latin-opsz-normal.woff2?url';
+import '../styles/global.css';
+import '../styles/pages.css';
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import OlivChat from '../components/OlivChat.astro';
+import ShakeQr from '../components/ShakeQr.astro';
+import { SITE, absoluteUrl, pagePath } from '../site';
+import { cached, getSingleton } from '../lib/lagom';
+
+interface Props {
+	title: string;
+	description: string;
+	/** Path (or absolute URL) of the social-share image. */
+	image?: string;
+	ogType?: 'website' | 'article' | 'profile';
+	/** Newer/older post URLs, emitted as <link rel="next|prev">. */
+	prev?: string;
+	next?: string;
+	/** Structured data blobs, each emitted as its own JSON-LD script. */
+	jsonLd?: object[];
+	/** Open Graph article metadata, for ogType="article". */
+	article?: { published: Date; modified: Date; tags: string[] };
+	noindex?: boolean;
+	/** Page accent (one of the Gruvbox hues): drives rules, marks and primary buttons. */
+	accent?: 'red' | 'green' | 'yellow' | 'blue' | 'purple' | 'aqua';
+}
+
+const { title, description, image = SITE.ogDefault, ogType = 'website', prev, next, jsonLd = [], article, noindex = false, accent = 'yellow' } =
+	Astro.props;
+
+// The "ask" assistant only exists on a site that has somewhere to send the questions: the
+// `chat.endpoint` option of the integration. Without it there is no widget at all.
+const chatEndpoint: string | undefined = import.meta.env.LAGOM_CHAT_ENDPOINT;
+
+const pathname = pagePath(Astro.url);
+const canonical = absoluteUrl(pathname);
+const ogImage = absoluteUrl(image);
+
+// Branding uploaded in the CMS (Settings > Header logo, Settings > Favicon). With neither uploaded this
+// layout emits exactly what it always did. Asked for once a minute at most, and a CMS that cannot
+// be reached just means the built-in bird: a missing setting must never take a page down.
+const brand = await cached('site:brand', 60_000, async () => {
+	try {
+		const doc = await getSingleton<{ logo?: string; favicon?: string }>('site');
+		// The first characters of the document's hash change whenever the settings do. Tacked onto
+		// the icon addresses, that makes browsers fetch a new icon instead of showing a cached one.
+		return { logo: doc.assets?.logo ?? null, favicon: doc.assets?.favicon ?? null, version: doc.hash.slice(0, 8) };
+	} catch {
+		return { logo: null, favicon: null, version: '' };
+	}
+});
+const logo = brand.logo;
+// The icons are generated (see pages/favicon/[file].ts) as soon as there is something to make
+// them from: an uploaded favicon, or failing that an uploaded logo.
+const customIcons = brand.favicon !== null || brand.logo !== null;
+---
+
+<!doctype html>
+<html lang={SITE.locale}>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<link rel="preload" href={serifFontUrl} as="font" type="font/woff2" crossorigin />
+		<link rel="preload" href={monoFontUrl} as="font" type="font/woff2" crossorigin />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+		<meta name="description" content={description} />
+		{noindex && <meta name="robots" content="noindex" />}
+		<link rel="canonical" href={canonical} />
+		{
+			/* The stylesheet points the header logo at the built-in file. An upload overrides just the
+			   image; size, colour and placement stay the stylesheet's. The box keeps the built-in
+			   logo's proportions and the upload is fitted inside it. (The large mark on the home
+			   page is its own setting, see pages/index.astro.) */
+			logo && <style set:html={`.logo{mask-image:url("${logo.src}")}`} />
+		}
+
+		{
+			customIcons ? (
+				<>
+					<link rel="icon" type="image/png" href={`/favicon/48.png?v=${brand.version}`} sizes="48x48" />
+					<link rel="icon" type="image/png" href={`/favicon/192.png?v=${brand.version}`} sizes="192x192" />
+					<link rel="icon" type="image/png" href={`/favicon/512.png?v=${brand.version}`} sizes="512x512" />
+					<link rel="apple-touch-icon" href={`/favicon/180.png?v=${brand.version}`} />
+					<link rel="manifest" href={`/favicon/site.webmanifest?v=${brand.version}`} />
+				</>
+			) : (
+				<>
+					<link rel="icon" href="/favicon.ico?v=2" sizes="48x48" />
+					<link rel="icon" type="image/png" href="/icon-192.png?v=2" sizes="192x192" />
+					<link rel="icon" type="image/png" href="/icon-512.png?v=2" sizes="512x512" />
+					<link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
+					<link rel="manifest" href="/site.webmanifest?v=2" />
+				</>
+			)
+		}
+		<meta name="theme-color" content="#fbf1c7" />
+
+		<meta property="og:title" content={title} />
+		<meta property="og:description" content={description} />
+		<meta property="og:type" content={ogType} />
+		<meta property="og:url" content={canonical} />
+		<meta property="og:image" content={ogImage} />
+		<meta property="og:site_name" content={SITE.name} />
+		<meta property="og:locale" content="en_GB" />
+		{
+			article && (
+				<>
+					<meta property="article:published_time" content={article.published.toISOString()} />
+					<meta property="article:modified_time" content={article.modified.toISOString()} />
+					<meta property="article:author" content={`${SITE.url}/about`} />
+					{article.tags.map((t) => <meta property="article:tag" content={t} />)}
+				</>
+			)
+		}
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={title} />
+		<meta name="twitter:description" content={description} />
+		<meta name="twitter:image" content={ogImage} />
+		{SITE.geo.region && <meta name="geo.region" content={SITE.geo.region} />}
+		{SITE.geo.placename && <meta name="geo.placename" content={SITE.geo.placename} />}
+		<meta name="language" content={SITE.locale} />
+
+		<link rel="alternate" type="application/rss+xml" title={SITE.feed.title} href="/rss.xml" />
+		<link rel="alternate" type="application/atom+xml" title={SITE.feed.title} href="/atom.xml" />
+		{prev && <link rel="prev" href={absoluteUrl(prev)} />}
+		{next && <link rel="next" href={absoluteUrl(next)} />}
+		{jsonLd.map((ld) => <script type="application/ld+json" set:html={JSON.stringify(ld)} />)}
+
+		<!-- Theme: runs before first paint (no flash) and once for the whole session.
+		     Follows the OS until the toggle is used; the choice is then remembered. -->
+		<script is:inline define:vars={{ KEY: SITE.themeKey }}>
+			(() => {
+				const root = document.documentElement;
+				const dark = matchMedia('(prefers-color-scheme: dark)');
+				const read = () => {
+					try {
+						return localStorage.getItem(KEY);
+					} catch {
+						return null;
+					}
+				};
+				const saved = read();
+				let theme = saved === 'light' || saved === 'dark' ? saved : dark.matches ? 'dark' : 'light';
+
+				const apply = () => {
+					root.dataset.theme = theme;
+					document
+						.querySelectorAll('[data-theme-toggle]')
+						.forEach((b) => b.setAttribute('aria-pressed', String(theme === 'dark')));
+					document
+						.querySelector('meta[name="theme-color"]')
+						?.setAttribute('content', theme === 'dark' ? '#282828' : '#fbf1c7');
+				};
+				apply();
+
+				// <html> attributes and the header are replaced on view-transition swaps.
+				document.addEventListener('astro:after-swap', apply);
+				document.addEventListener('astro:page-load', apply);
+
+				dark.addEventListener('change', () => {
+					if (read()) return; // an explicit choice wins over the OS
+					theme = dark.matches ? 'dark' : 'light';
+					apply();
+				});
+
+				document.addEventListener('click', (event) => {
+					if (!(event.target instanceof Element) || !event.target.closest('[data-theme-toggle]')) return;
+					theme = theme === 'dark' ? 'light' : 'dark';
+					try {
+						localStorage.setItem(KEY, theme);
+					} catch {
+						/* storage unavailable (private mode): the choice just isn't remembered */
+					}
+					apply();
+				});
+			})();
+		</script>
+
+		<slot name="head" />
+		<ClientRouter />
+	</head>
+	<body data-accent={accent}>
+		<!-- Full-bleed art behind the whole page (only the start page fills it). -->
+		<slot name="backdrop" />
+		<a class="skip-link" href="#main">Skip to content</a>
+		<Nav />
+		<!-- The shell ends where the footer starts, so the sticky chat launcher comes to rest above it. -->
+		<div class="page-shell">
+			<main id="main" class="page">
+				<slot />
+			</main>
+			{chatEndpoint && <OlivChat endpoint={chatEndpoint} />}
+		</div>
+		<Footer />
+		<ShakeQr />
+		<script>
+			import '../scripts/site.ts';
+		</script>
+	</body>
+</html>
