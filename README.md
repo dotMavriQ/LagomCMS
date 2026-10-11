@@ -76,6 +76,36 @@ On a real server, let nginx or Caddy serve `var/site/current/` directly and pass
 To replace one of the built-in pages, create a file at the same address in your own
 `src/pages/`. Yours wins.
 
+## The chat assistant
+
+Optional, and off until you turn it on. **AI Chat** in the admin puts an "ask" button in the
+corner of every page, opening a small chat window. There you set its name, greeting, picture
+and the one thing it cannot work without: an endpoint.
+
+The CMS does not talk to a language model itself. The visitor's browser posts each question
+to your endpoint, which is a small service of your own, so the model, the bill and any keys
+stay with you and never pass through the site. The whole contract:
+
+```
+POST   {"message": "...", "previous": {"question": "...", "answer": "..."}}
+200    {"reply": "..."}
+4xx    {"error": "...", "detail": "..."}     429 shows your "run out" message
+```
+
+`previous` is left out on the first question. The endpoint has to allow your site's origin
+(CORS).
+
+`examples/chat-worker/` is a Cloudflare Worker that does this with Workers AI, which has a
+free daily allowance:
+
+```sh
+cd examples/chat-worker
+# edit about.js (what the assistant knows) and ALLOWED_ORIGIN in wrangler.toml
+npx wrangler deploy
+```
+
+Paste the address it prints into AI Chat > Endpoint, tick "Show on the site" and save.
+
 ## Where things live
 
 | Path | What it is |
@@ -88,6 +118,7 @@ To replace one of the built-in pages, create a file at the same address in your 
 | `admin/` | The editor's JavaScript, bundled into `public/admin/build/`. |
 | `packages/astro/` | The Astro integration. |
 | `starter/content/` | What a new installation starts with. |
+| `examples/` | A stock Astro project to copy, and a Worker for the chat assistant. |
 
 Settings come from environment variables; `config.php` lists them all. The ones that matter:
 `LAGOM_SITE` (where the Astro project is), `LAGOM_INTERNAL_URL` (where the build can reach the

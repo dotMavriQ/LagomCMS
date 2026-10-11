@@ -984,7 +984,7 @@
 			margin-block-start: calc((clamp(2.75rem, 1.4rem + 6vw, 5rem) - 2.75rem) / 2);
 		}
 	}
-	/* Outlined pill link, same language as the OLIV "ask" launcher: 44px tall, inverts on hover. */
+	/* Outlined pill link, same language as the chat's "ask" launcher: 44px tall, inverts on hover. */
 	.pill-link {
 		display: inline-flex;
 		align-items: center;
@@ -1460,35 +1460,35 @@
 		}
 	}
 
-	/* ---------- OLIV chat ----------
+	/* ---------- The chat assistant ----------
 	   Sticky at the end of .page-shell: it floats bottom-right while the page scrolls and comes to rest just above the
 	   footer instead of covering it. The negative block margins keep it out of the layout (no extra gap under the
 	   content) and let it settle into the footer's top margin. */
-	.oliv-chat {
-		--oliv-launch-size: 2.75rem;
+	.chat-widget {
+		--chat-launch-size: 2.75rem;
 
 		position: sticky;
 		inset-block-end: 1rem;
 		z-index: 50;
 		align-self: end;
-		margin-block: calc(-1 * var(--oliv-launch-size)) -2.5rem;
+		margin-block: calc(-1 * var(--chat-launch-size)) -2.5rem;
 		margin-inline-end: 1rem;
-		block-size: var(--oliv-launch-size);
+		block-size: var(--chat-launch-size);
 		/* stylelint-disable-next-line plugin/use-baseline -- polish only: without it the launcher just never gets the lift */
 		container-type: scroll-state;
 	}
 	/* lifted while it floats over the content, flat once it has settled above the footer */
 	/* stylelint-disable-next-line plugin/use-baseline -- see above */
 	@container scroll-state(stuck: bottom) {
-		.oliv-launch:not(:hover) {
+		.chat-launch:not(:hover) {
 			box-shadow: 0 3px 0 var(--border-strong);
 		}
 	}
-	.oliv-launch {
+	.chat-launch {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.4rem;
-		block-size: var(--oliv-launch-size);
+		block-size: var(--chat-launch-size);
 		padding: 0.5rem 1rem;
 		border: 1px solid var(--fg);
 		border-radius: 99rem;
@@ -1505,19 +1505,19 @@
 		}
 	}
 	/* the sparkles glyph follows the button's text colour (so it inverts on hover with the label) */
-	.oliv-stars svg {
+	.chat-stars svg {
 		display: block;
 		inline-size: 1.25em;
 		block-size: 1.25em;
 	}
-	.oliv-panel {
+	.chat-panel {
 		position: absolute;
 		inset-block-end: calc(100% + 0.75rem);
 		inset-inline-end: 0;
 		display: grid;
 		grid-template-rows: auto minmax(0, 1fr) auto;
 		inline-size: min(24rem, 100vw - 2rem);
-		max-block-size: min(34rem, var(--oliv-room, 100dvh - 4.75rem) - 1.75rem);
+		max-block-size: min(34rem, var(--chat-room, 100dvh - 4.75rem) - 1.75rem);
 		background: var(--bg);
 		border: 1px solid var(--fg);
 		border-radius: 0.75rem;
@@ -1525,7 +1525,7 @@
 		font-size: 0.95rem;
 		line-height: 1.5;
 	}
-	.oliv-header {
+	.chat-header {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -1542,25 +1542,25 @@
 			color: var(--muted);
 		}
 	}
-	.oliv-identity {
+	.chat-identity {
 		display: flex;
 		align-items: center;
 		gap: 0.75rem;
 	}
 	/* The avatar is cream artwork: a hairline keeps its edge on the (equally cream) light page,
 	   and on the dark page it reads as a sticker. */
-	.oliv-avatar,
-	.oliv-message img {
+	.chat-avatar,
+	.chat-message img {
 		flex: none;
 		border-radius: 50%;
 		object-fit: cover;
 		box-shadow: 0 0 0 1px var(--border-strong);
 	}
-	.oliv-avatar {
+	.chat-avatar {
 		inline-size: 3rem;
 		block-size: 3rem;
 	}
-	.oliv-close {
+	.chat-close {
 		inline-size: 2.5rem;
 		block-size: 2.5rem;
 		border: 1px solid var(--border);
@@ -1568,14 +1568,14 @@
 		background: transparent;
 		cursor: pointer;
 	}
-	.oliv-log {
+	.chat-log {
 		overflow-y: auto;
 		padding: 1rem;
 		display: grid;
 		gap: 0.75rem;
 		align-content: start;
 	}
-	.oliv-message {
+	.chat-message {
 		display: flex;
 		gap: 0.6rem;
 		align-items: flex-start;
@@ -1590,7 +1590,7 @@
 		}
 	}
 	/* the "thinking" indicator: three dots in a wave */
-	.oliv-typing {
+	.chat-typing {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.3rem;
@@ -1602,7 +1602,7 @@
 			border-radius: 50%;
 			background: currentColor;
 			opacity: 0.35;
-			animation: oliv-pulse 1.4s ease-in-out infinite;
+			animation: chat-pulse 1.4s ease-in-out infinite;
 		}
 		span:nth-child(2) {
 			animation-delay: 0.2s;
@@ -1611,7 +1611,7 @@
 			animation-delay: 0.4s;
 		}
 	}
-	@keyframes oliv-pulse {
+	@keyframes chat-pulse {
 		0%,
 		60%,
 		100% {
@@ -1623,10 +1623,10 @@
 	}
 	/* with motion allowed, the dots also bounce */
 	@media (prefers-reduced-motion: no-preference) {
-		.oliv-typing span {
-			animation-name: oliv-bounce;
+		.chat-typing span {
+			animation-name: chat-bounce;
 		}
-		@keyframes oliv-bounce {
+		@keyframes chat-bounce {
 			0%,
 			60%,
 			100% {
@@ -1639,7 +1639,7 @@
 			}
 		}
 	}
-	.oliv-message--user {
+	.chat-message--user {
 		justify-content: flex-end;
 
 		p {
@@ -1649,7 +1649,7 @@
 			background: var(--surface);
 		}
 	}
-	.oliv-form {
+	.chat-form {
 		display: grid;
 		grid-template-columns: 1fr auto;
 		gap: 0.5rem;
@@ -1665,7 +1665,7 @@
 			background: var(--surface);
 		}
 	}
-	.oliv-send {
+	.chat-send {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.35rem;

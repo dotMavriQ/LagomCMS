@@ -1,0 +1,14 @@
+name = "lagom-chat"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+
+# Workers AI, reachable in the code as env.AI. No key to manage: the Worker runs in
+# your account and is billed (or uses the free daily allowance) there.
+[ai]
+binding = "AI"
+
+[vars]
+# The one site whose pages may ask questions. No trailing slash.
+ALLOWED_ORIGIN = "https://example.com"
+# Any text model from https://developers.cloudflare.com/workers-ai/models/
+MODEL = "@cf/meta/llama-3.1-8b-instruct"

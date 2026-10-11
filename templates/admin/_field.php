@@ -147,15 +147,17 @@ $showsHelp = in_array($field['type'], ['rows', 'asset'], true);
             // on the site that image is, so the field shows what is actually on the page
             // right now. It is fetched from the site itself: the CMS ships no pictures, and
             // a site that has no image of its own for this simply shows "none".
+            // A field without 'builtin' (the chat assistant's avatar) has nothing to fall back
+            // on: empty means no picture, and the buttons say so.
             $uploaded = is_string($value) ? $value : '';
             $builtin = isset($field['builtin']) ? rtrim($siteUrl, '/') . $field['builtin'] : '';
             $shown = $uploaded !== '' ? $uploaded : $builtin;
             ?>
             <div class="asset" data-field="<?= e($name) ?>" data-kind="asset" data-value="<?= e($uploaded) ?>" data-builtin="<?= e($builtin) ?>">
                 <img class="asset__preview" src="<?= e($shown) ?>" alt=""<?= $shown === '' ? ' hidden' : '' ?>>
-                <span class="asset__default"<?= $uploaded !== '' ? ' hidden' : '' ?>>the site's own</span>
+                <span class="asset__default"<?= $uploaded !== '' ? ' hidden' : '' ?>><?= $builtin !== '' ? "the site's own" : 'none' ?></span>
                 <button class="button" type="button" id="<?= e($id) ?>" data-asset-upload>Replace</button>
-                <button class="button" type="button" data-asset-clear<?= $uploaded === '' ? ' hidden' : '' ?>>Back to the site's own</button>
+                <button class="button" type="button" data-asset-clear<?= $uploaded === '' ? ' hidden' : '' ?>><?= $builtin !== '' ? "Back to the site's own" : 'Remove' ?></button>
                 <input type="file" accept="<?= e(implode(',', $field['accept'] ?? ['image/*'])) ?>" hidden>
             </div>
             <?php if (isset($field['help'])): ?>

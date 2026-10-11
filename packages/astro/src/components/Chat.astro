@@ -1,0 +1,44 @@
+---
+/** The "ask" button in the corner of every page, and the chat window it opens.
+ *
+ *  Everything it says comes from the CMS (AI Chat in the admin): the assistant's name, its
+ *  greeting, its picture, and the address the questions go to. Base.astro only puts this on
+ *  the page when the owner has switched it on and given it somewhere to send them.
+ *
+ *  The talking is done by scripts/chat.ts. */
+import sparkles from '../assets/icons/sparkles.svg?raw';
+import { CHAT } from '../site';
+
+const name = CHAT.name || 'Assistant';
+const greeting = CHAT.greeting || `I'm ${name}. Ask me anything about this site.`;
+const placeholder = CHAT.placeholder || 'Ask a question...';
+---
+
+<aside class="chat-widget" id="chat-widget" aria-label={`${name}, the site's assistant`} data-endpoint={CHAT.endpoint} data-avatar={CHAT.avatar} data-busy={CHAT.busyMessage}>
+	<button class="chat-launch" id="chat-launch" type="button" aria-expanded="false" aria-controls="chat-panel">
+		<span class="chat-stars" aria-hidden="true" set:html={sparkles} /><span>{CHAT.launcher || 'ask'}</span>
+	</button>
+	<section class="chat-panel" id="chat-panel" role="dialog" aria-labelledby="chat-title" hidden>
+		<header class="chat-header">
+			<div class="chat-identity">
+				{CHAT.avatar && <img class="chat-avatar" src={CHAT.avatar} alt="" width="48" height="48" loading="lazy" />}
+				<div>
+					<h2 id="chat-title">{name}</h2>
+					{CHAT.tagline && <p>{CHAT.tagline}</p>}
+				</div>
+			</div>
+			<button class="chat-close" id="chat-close" type="button" aria-label="Close the chat"><span aria-hidden="true">✕</span></button>
+		</header>
+		<div class="chat-log" id="chat-log" role="log" aria-label="Conversation" aria-live="polite">
+			<div class="chat-message chat-message--bot">
+				{CHAT.avatar && <img src={CHAT.avatar} alt="" width="32" height="32" loading="lazy" />}
+				<p>{greeting}</p>
+			</div>
+		</div>
+		<form class="chat-form" id="chat-form">
+			<label class="sr-only" for="chat-input">Ask {name} a question</label>
+			<textarea id="chat-input" name="message" rows="2" maxlength="500" placeholder={placeholder} required></textarea>
+			<button class="chat-send" type="submit" id="chat-send"><span aria-hidden="true">✧</span><span>send</span></button>
+		</form>
+	</section>
+</aside>

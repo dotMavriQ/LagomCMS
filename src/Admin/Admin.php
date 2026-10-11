@@ -403,6 +403,28 @@ final class Admin
     {
         $collection = $definition['name'];
         $row = $this->index->find($collection, $slug);
+
+        // A singleton is one document that is simply expected to be there. An installation
+        // older than the collection (AI Chat arrived after the first sites were set up) has
+        // no file for it yet, so the first visit to its screen makes one, holding the
+        // collection's defaults. Nothing is published by this; that takes a save.
+        if ($row === null && $definition['singleton'] && $this->collections->allows($collection, 'update', $user->role)) {
+            $fields = ['title' => $definition['label']];
+            foreach ($definition['fields'] as $field) {
+                if (isset($field['default'])) {
+                    $fields[$field['name']] = $field['default'];
+                }
+            }
+
+            try {
+                $this->writer->create($collection, $collection, $fields, '');
+            } catch (Conflict) {
+                // Somebody opened the same screen a moment earlier. Theirs will do.
+            }
+            $this->index->refresh();
+            $row = $this->index->find($collection, $slug);
+        }
+
         if ($row === null) {
             return $this->page(404, 'missing', $user, ['title' => 'Not found']);
         }

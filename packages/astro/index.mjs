@@ -48,10 +48,6 @@ function addressOf(file) {
  * @param {object} [options]
  * @param {string} [options.url] Where the CMS runs. Leave it out to read the LAGOM_URL
  *                               environment variable at build time instead.
- * @param {{endpoint: string, owner?: string}} [options.chat] Turns on the "ask" assistant in
- *                               the corner of every page, sending questions to `endpoint`. Off by
- *                               default: it needs a service of your own to answer them. `owner`
- *                               is who it speaks for ("Ask me about Ada's work").
  */
 export default function lagom(options = {}) {
     return {
@@ -80,10 +76,6 @@ export default function lagom(options = {}) {
                 // And where the project is, for the share images, which read its illustrations from disk.
                 defines['import.meta.env.LAGOM_PROJECT_ROOT'] = JSON.stringify(fileURLToPath(config.root));
                 if (options.url) defines['import.meta.env.LAGOM_URL'] = JSON.stringify(options.url);
-                if (options.chat?.endpoint) {
-                    defines['import.meta.env.LAGOM_CHAT_ENDPOINT'] = JSON.stringify(options.chat.endpoint);
-                    defines['import.meta.env.LAGOM_CHAT_OWNER'] = JSON.stringify(options.chat.owner ?? '');
-                }
 
                 updateConfig({
                     // The addresses LagomCMS sites use: /blog/my-post, never /blog/my-post/.

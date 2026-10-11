@@ -49,6 +49,24 @@ export const PERSON: { '@type': 'Person'; '@id': string; name: string; alternate
 	url: SITE.url,
 };
 
+/** The "ask" assistant in the corner of every page. Set up in the CMS under AI Chat, and off
+ *  until the owner switches it on there. See components/Chat.astro. */
+export const CHAT = {
+	enabled: false,
+	/** Where the questions are sent: a service of the owner's own. */
+	endpoint: '',
+	name: 'Assistant',
+	tagline: '',
+	greeting: '',
+	placeholder: '',
+	/** The word on the button. */
+	launcher: 'ask',
+	/** An uploaded picture's /media/... address, or empty for none. */
+	avatar: '',
+	/** What it says when the service has run out for the day. Empty means the built-in line. */
+	busyMessage: '',
+};
+
 export const LINKS = {
 	/** The project this site is built with. Credited in the footer. */
 	lagomcms: 'https://github.com/dotMavriQ/LagomCMS',

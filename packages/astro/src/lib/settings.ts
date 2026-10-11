@@ -1,12 +1,12 @@
 /** Brings the site-wide settings in from the CMS.
  *
- *  Two documents hold them: `site` (Settings in the admin) and `social` (Social). They are
- *  fetched at most once a minute and copied into the plain objects the rest of the code reads:
- *  SITE, NAV and PERSON in site.ts, SOCIAL in lib/fediverse.ts.
+ *  Three documents hold them: `site` (Settings in the admin), `social` (Social) and `chat`
+ *  (AI Chat). They are fetched at most once a minute and copied into the plain objects the
+ *  rest of the code reads: SITE, NAV, PERSON and CHAT in site.ts, SOCIAL in lib/fediverse.ts.
  *
  *  If the CMS cannot be reached, whatever those objects held before is left alone. A page that
  *  needs the CMS for its content will say so itself; a setting must never be what breaks it. */
-import { NAV, PERSON, SITE } from '../site';
+import { CHAT, NAV, PERSON, SITE } from '../site';
 import { SOCIAL } from './fediverse';
 import { cached, getSingleton } from './lagom';
 
@@ -36,16 +36,29 @@ interface SocialFields {
 	accounts?: { acct: string }[];
 }
 
+interface ChatFields {
+	title?: string;
+	enabled?: boolean;
+	endpoint?: string;
+	tagline?: string;
+	greeting?: string;
+	placeholder?: string;
+	launcher?: string;
+	busy_message?: string;
+}
+
 export async function loadSettings(): Promise<void> {
 	const loaded = await cached('settings', 60_000, async () => {
 		// Fetched side by side; either one failing leaves that half as it was.
-		const [site, social, cv] = await Promise.all([
+		const [site, social, cv, chat] = await Promise.all([
 			getSingleton<SiteFields>('site').then((doc) => doc.fields).catch(() => null),
 			getSingleton<SocialFields>('social').then((doc) => doc.fields).catch(() => null),
 			// The author's profiles elsewhere are listed on the CV (its "Profile URLs").
 			getSingleton<{ same_as?: string[] }>('cv').then((doc) => doc.fields).catch(() => null),
+			// The whole document, not just its fields: the avatar is an upload, listed beside them.
+			getSingleton<ChatFields>('chat').catch(() => null),
 		]);
-		return { site, social, cv };
+		return { site, social, cv, chat };
 	});
 
 	const site = loaded.site;
@@ -81,5 +94,18 @@ export async function loadSettings(): Promise<void> {
 		SOCIAL.acct = (social.accounts?.[0]?.acct ?? '').replace(/^@/, '');
 		SOCIAL.profileUrl = social.profile_url ?? '';
 		SOCIAL.mediaHost = social.media_host ?? '';
+	}
+
+	const chat = loaded.chat;
+	if (chat) {
+		CHAT.enabled = chat.fields.enabled === true;
+		CHAT.endpoint = (chat.fields.endpoint ?? '').trim();
+		CHAT.name = chat.fields.title || 'Assistant';
+		CHAT.tagline = chat.fields.tagline ?? '';
+		CHAT.greeting = chat.fields.greeting ?? '';
+		CHAT.placeholder = chat.fields.placeholder ?? '';
+		CHAT.launcher = chat.fields.launcher || 'ask';
+		CHAT.avatar = chat.assets?.avatar?.src ?? '';
+		CHAT.busyMessage = chat.fields.busy_message ?? '';
 	}
 }

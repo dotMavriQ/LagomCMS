@@ -1,5 +1,5 @@
 /** Site-wide behaviour. Loaded once; re-binds on every view-transition navigation. */
-import { initOliv } from './oliv';
+import { initChat } from './chat';
 import { initShakeQr } from './shake-qr';
 
 /** E-mail addresses are stored as atob(reverse(token)) in `data-m`, so they never
@@ -101,6 +101,6 @@ document.addEventListener('astro:page-load', () => {
 	initTocSpy();
 	revealEmails();
 	syncToc();
-	initOliv();
+	initChat();
 	initShakeQr();
 });

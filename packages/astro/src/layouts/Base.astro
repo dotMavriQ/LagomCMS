@@ -13,9 +13,9 @@ import '../styles/global.css';
 import '../styles/pages.css';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
-import OlivChat from '../components/OlivChat.astro';
+import Chat from '../components/Chat.astro';
 import ShakeQr from '../components/ShakeQr.astro';
-import { SITE, absoluteUrl, pagePath } from '../site';
+import { CHAT, SITE, absoluteUrl, pagePath } from '../site';
 import { cached, getSingleton } from '../lib/lagom';
 
 interface Props {
@@ -39,9 +39,9 @@ interface Props {
 const { title, description, image = SITE.ogDefault, ogType = 'website', prev, next, jsonLd = [], article, noindex = false, accent = 'yellow' } =
 	Astro.props;
 
-// The "ask" assistant only exists on a site that has somewhere to send the questions: the
-// `chat.endpoint` option of the integration. Without it there is no widget at all.
-const chatEndpoint: string | undefined = import.meta.env.LAGOM_CHAT_ENDPOINT;
+// The "ask" assistant is only on the page when the owner has switched it on in the CMS (AI
+// Chat) and given it somewhere to send the questions. Otherwise there is no widget at all.
+const hasChat = CHAT.enabled && CHAT.endpoint !== '';
 
 const pathname = pagePath(Astro.url);
 const canonical = absoluteUrl(pathname);
@@ -201,7 +201,7 @@ const customIcons = brand.favicon !== null || brand.logo !== null;
 			<main id="main" class="page">
 				<slot />
 			</main>
-			{chatEndpoint && <OlivChat endpoint={chatEndpoint} />}
+			{hasChat && <Chat />}
 		</div>
 		<Footer />
 		<ShakeQr />
